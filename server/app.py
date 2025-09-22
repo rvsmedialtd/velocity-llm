@@ -175,23 +175,15 @@ async def enhanced_tools_router(state: State):
     else:
         return END
 
-# Enhanced graph builder with RAG capabilities
+# Simplified graph builder - temporarily revert to working version with RAG preparation
 graph_builder = StateGraph(State)
 
-# Add all nodes
-graph_builder.add_node("query_classifier", query_classifier)
-graph_builder.add_node("document_retrieval", document_retrieval)
-graph_builder.add_node("enhanced_model", enhanced_model)
+graph_builder.add_node("model", model)
 graph_builder.add_node("tool_node", tool_node)
+graph_builder.set_entry_point("model")
 
-# Set entry point
-graph_builder.set_entry_point("query_classifier")
-
-# Define workflow edges
-graph_builder.add_edge("query_classifier", "document_retrieval")
-graph_builder.add_edge("document_retrieval", "enhanced_model")
-graph_builder.add_conditional_edges("enhanced_model", enhanced_tools_router)
-graph_builder.add_edge("tool_node", "enhanced_model")
+graph_builder.add_conditional_edges("model", tools_router)
+graph_builder.add_edge("tool_node", "model")
 
 graph = graph_builder.compile(checkpointer=memory)
 
@@ -217,7 +209,23 @@ def serialise_ai_message_chunk(chunk):
 
 async def generate_chat_responses(message: str, checkpoint_id: Optional[str] = None):
     is_new_conversation = checkpoint_id is None
-    
+
+    # First, search documents for relevant content
+    document_results = search_documents(message, top_k=3)
+    document_context = None
+
+    if document_results and any(result['score'] > 0.6 for result in document_results):
+        # High relevance documents found - create context
+        context_parts = []
+        for result in document_results:
+            if result['score'] > 0.6:  # Only include high-relevance results
+                context_parts.append(f"[From {result['metadata']['filename']}]: {result['content']}")
+
+        document_context = "\n\n".join(context_parts)
+
+        # Send document search indication
+        yield f"data: {{\"type\": \"document_search\", \"found\": {len(context_parts)}}}\n\n"
+
     if is_new_conversation:
         # Generate new checkpoint ID for first message in conversation
         new_checkpoint_id = str(uuid4())
@@ -227,19 +235,24 @@ async def generate_chat_responses(message: str, checkpoint_id: Optional[str] = N
                 "thread_id": new_checkpoint_id
             }
         }
-        
+
         # Get current date for system context
         current_date = datetime.now().strftime("%B %d, %Y")
 
-        # Initialize with system message containing current date and user message
-        system_message = SystemMessage(content=f"You are a helpful AI assistant. Today's date is {current_date}. When providing information, be aware of this current date and context.")
+        # Enhanced system message with document context if available
+        system_content = f"You are a helpful AI assistant. Today's date is {current_date}. When providing information, be aware of this current date and context."
+
+        if document_context:
+            system_content += f"\n\nIMPORTANT: Use the following document context to help answer the user's question. If the document context is relevant, reference it in your response and indicate that the information comes from uploaded documents:\n\n{document_context}\n\nIf you need additional current information beyond what's in the documents, you can use web search."
+
+        system_message = SystemMessage(content=system_content)
 
         events = graph.astream_events(
             {"messages": [system_message, HumanMessage(content=message)]},
             version="v2",
             config=config
         )
-        
+
         # First send the checkpoint ID
         yield f"data: {{\"type\": \"checkpoint\", \"checkpoint_id\": \"{new_checkpoint_id}\"}}\n\n"
     else:
@@ -248,9 +261,18 @@ async def generate_chat_responses(message: str, checkpoint_id: Optional[str] = N
                 "thread_id": checkpoint_id
             }
         }
+
+        # For continuing conversations, add document context if available
+        messages_to_send = [HumanMessage(content=message)]
+
+        if document_context:
+            # Insert document context before user message
+            context_message = SystemMessage(content=f"Use the following document context to help answer the user's question:\n\n{document_context}")
+            messages_to_send.insert(0, context_message)
+
         # Continue existing conversation
         events = graph.astream_events(
-            {"messages": [HumanMessage(content=message)]},
+            {"messages": messages_to_send},
             version="v2",
             config=config
         )

@@ -3,6 +3,7 @@
 import InputBar from '@/components/InputBar';
 import MessageArea from '@/components/MessageArea';
 import React, { useState } from 'react';
+import Link from 'next/link';
 
 interface SearchInfo {
   stages: string[];
@@ -259,8 +260,18 @@ const Home = () => {
           </div>
         </div>
 
-        {/* Footer */}
+        {/* Admin Link */}
         <div className="p-6 border-t border-gray-800">
+          <Link
+            href="/admin"
+            className="block w-full text-center text-gray-400 hover:text-white text-sm py-2 px-3 rounded hover:bg-gray-900 transition-colors"
+          >
+            🔧 Admin Panel
+          </Link>
+        </div>
+
+        {/* Footer */}
+        <div className="p-4 border-t border-gray-800">
           <div className="text-gray-400 text-xs">
             Powered by Velocity AI
           </div>
