@@ -1,0 +1,13 @@
+client@0.1.0 /Users/rvsmedia/Documents/GPT/velocity-llm/perplexity_2.0/client
+├── @emnapi/runtime@1.4.3 extraneous
+├── @tailwindcss/postcss@4.1.4
+├── @types/node@20.17.30
+├── @types/react-dom@19.1.2
+├── @types/react@19.1.2
+├── next@15.3.0
+├── react-dom@19.1.0
+├── react-markdown@10.1.0
+├── react@19.1.0
+├── tailwindcss@4.1.4
+└── typescript@5.8.3
+

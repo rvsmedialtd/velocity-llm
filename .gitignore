@@ -48,3 +48,17 @@ venv/
 
 # OS files
 .DS_Store
+
+# RAG Vector Database
+/server/chroma_db/
+*.db
+*.sqlite
+*.sqlite3
+
+# Document Storage
+/server/uploaded_docs/
+/server/documents/
+
+# Additional Python
+*.pkl
+*.pickle

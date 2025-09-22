@@ -1,24 +1,40 @@
-from typing import TypedDict, Annotated, Optional
+from typing import TypedDict, Annotated, Optional, List, Dict, Any
 from langgraph.graph import add_messages, StateGraph, END
 from langchain_openai import ChatOpenAI
 from langchain_core.messages import HumanMessage, AIMessageChunk, ToolMessage, SystemMessage
 from dotenv import load_dotenv
 from langchain_community.tools.tavily_search import TavilySearchResults
-from fastapi import FastAPI, Query
+from fastapi import FastAPI, Query, UploadFile, File, HTTPException, Depends
 from fastapi.responses import StreamingResponse
 from fastapi.middleware.cors import CORSMiddleware
+from fastapi.security import HTTPBearer, HTTPAuthorizationCredentials
 import json
 from uuid import uuid4
 from langgraph.checkpoint.memory import MemorySaver
 from datetime import datetime
+import os
+from rag_utils import process_uploaded_file, search_documents, delete_document_by_filename, list_all_documents
 
 load_dotenv()
+
+# Authentication setup
+security = HTTPBearer()
+ADMIN_TOKEN = os.getenv("ADMIN_TOKEN", "your-secure-admin-token-here")
+
+def verify_admin_token(credentials: HTTPAuthorizationCredentials = Depends(security)):
+    """Verify admin authentication token."""
+    if credentials.credentials != ADMIN_TOKEN:
+        raise HTTPException(status_code=401, detail="Invalid authentication token")
+    return credentials
 
 # Initialize memory saver for checkpointing
 memory = MemorySaver()
 
 class State(TypedDict):
     messages: Annotated[list, add_messages]
+    document_context: Optional[str]
+    search_strategy: str  # "documents", "web", "hybrid"
+    source_attribution: List[Dict[str, Any]]
 
 search_tool = TavilySearchResults(
     max_results=4,
@@ -75,14 +91,107 @@ async def tool_node(state):
     # Add the tool messages to the state
     return {"messages": tool_messages}
 
+async def query_classifier(state: State):
+    """Determine search strategy based on query content."""
+    last_message = state["messages"][-1]
+    query = last_message.content if hasattr(last_message, 'content') else str(last_message)
+
+    # Search for relevant documents
+    document_results = search_documents(query, top_k=3)
+
+    # Determine strategy based on document availability and query intent
+    if document_results and any(result['score'] > 0.7 for result in document_results):
+        # High relevance documents found
+        if "explain further" in query.lower() or "more details" in query.lower() or "latest" in query.lower():
+            strategy = "hybrid"  # Use both documents and web search
+        else:
+            strategy = "documents"  # Documents only
+    else:
+        strategy = "web"  # Web search only
+
+    return {
+        "search_strategy": strategy,
+        "document_context": None,
+        "source_attribution": []
+    }
+
+async def document_retrieval(state: State):
+    """Retrieve relevant documents from vector database."""
+    last_message = state["messages"][-1]
+    query = last_message.content if hasattr(last_message, 'content') else str(last_message)
+
+    # Search documents
+    document_results = search_documents(query, top_k=3)
+
+    if document_results:
+        # Combine document content
+        context_parts = []
+        source_attribution = []
+
+        for result in document_results:
+            context_parts.append(f"[From {result['metadata']['filename']}]: {result['content']}")
+            source_attribution.append({
+                "type": "document",
+                "filename": result['metadata']['filename'],
+                "score": result['score']
+            })
+
+        document_context = "\n\n".join(context_parts)
+
+        return {
+            "document_context": document_context,
+            "source_attribution": source_attribution
+        }
+
+    return {
+        "document_context": None,
+        "source_attribution": []
+    }
+
+async def enhanced_model(state: State):
+    """Enhanced model that incorporates document context."""
+    messages = state["messages"].copy()
+
+    # Add document context to system message if available
+    if state.get("document_context"):
+        context_message = SystemMessage(
+            content=f"Use the following document context to help answer the user's question. If the document context is relevant, reference it in your response and indicate that the information comes from uploaded documents.\n\nDocument Context:\n{state['document_context']}\n\nIf you need additional current information beyond what's in the documents, you can use web search."
+        )
+        messages.insert(-1, context_message)  # Insert before the last user message
+
+    # Invoke the LLM
+    result = await llm_with_tools.ainvoke(messages)
+
+    return {
+        "messages": [result]
+    }
+
+async def enhanced_tools_router(state: State):
+    """Enhanced router that considers search strategy."""
+    last_message = state["messages"][-1]
+
+    if hasattr(last_message, "tool_calls") and len(last_message.tool_calls) > 0:
+        return "tool_node"
+    else:
+        return END
+
+# Enhanced graph builder with RAG capabilities
 graph_builder = StateGraph(State)
 
-graph_builder.add_node("model", model)
+# Add all nodes
+graph_builder.add_node("query_classifier", query_classifier)
+graph_builder.add_node("document_retrieval", document_retrieval)
+graph_builder.add_node("enhanced_model", enhanced_model)
 graph_builder.add_node("tool_node", tool_node)
-graph_builder.set_entry_point("model")
 
-graph_builder.add_conditional_edges("model", tools_router)
-graph_builder.add_edge("tool_node", "model")
+# Set entry point
+graph_builder.set_entry_point("query_classifier")
+
+# Define workflow edges
+graph_builder.add_edge("query_classifier", "document_retrieval")
+graph_builder.add_edge("document_retrieval", "enhanced_model")
+graph_builder.add_conditional_edges("enhanced_model", enhanced_tools_router)
+graph_builder.add_edge("tool_node", "enhanced_model")
 
 graph = graph_builder.compile(checkpointer=memory)
 
@@ -190,8 +299,43 @@ async def generate_chat_responses(message: str, checkpoint_id: Optional[str] = N
 @app.get("/chat_stream/{message}")
 async def chat_stream(message: str, checkpoint_id: Optional[str] = Query(None)):
     return StreamingResponse(
-        generate_chat_responses(message, checkpoint_id), 
+        generate_chat_responses(message, checkpoint_id),
         media_type="text/event-stream"
     )
+
+# Admin-only document management endpoints
+@app.post("/admin/upload")
+async def upload_document(
+    file: UploadFile = File(...),
+    credentials: HTTPAuthorizationCredentials = Depends(verify_admin_token)
+):
+    """Upload and process a document (admin only)."""
+    try:
+        # Read file content
+        content = await file.read()
+
+        # Process the file
+        result = process_uploaded_file(content, file.filename)
+
+        return result
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=f"Error processing file: {str(e)}")
+
+@app.get("/admin/documents")
+async def list_documents(credentials: HTTPAuthorizationCredentials = Depends(verify_admin_token)):
+    """List all uploaded documents (admin only)."""
+    return {"documents": list_all_documents()}
+
+@app.delete("/admin/documents/{filename}")
+async def delete_document(
+    filename: str,
+    credentials: HTTPAuthorizationCredentials = Depends(verify_admin_token)
+):
+    """Delete a document by filename (admin only)."""
+    result = delete_document_by_filename(filename)
+    if result["success"]:
+        return result
+    else:
+        raise HTTPException(status_code=500, detail=result.get("error", "Failed to delete document"))
 
 # SSE - server-sent events 
