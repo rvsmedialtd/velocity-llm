@@ -18,42 +18,43 @@ interface UploadResponse {
 
 export default function AdminPage() {
   const [isAuthenticated, setIsAuthenticated] = useState(false);
-  const [adminToken, setAdminToken] = useState('');
+  const [userData, setUserData] = useState(null);
   const [documents, setDocuments] = useState<Document[]>([]);
   const [uploading, setUploading] = useState(false);
   const [dragOver, setDragOver] = useState(false);
   const [message, setMessage] = useState('');
+  const [loading, setLoading] = useState(true);
 
   // Check authentication on load
   useEffect(() => {
-    const storedToken = localStorage.getItem('adminToken');
-    if (storedToken) {
-      setAdminToken(storedToken);
-      setIsAuthenticated(true);
-      loadDocuments(storedToken);
-    }
+    checkAuth();
   }, []);
 
-  const handleLogin = async (e: React.FormEvent) => {
-    e.preventDefault();
-    try {
-      // Test the token by trying to fetch documents
-      const response = await fetch('http://127.0.0.1:8000/admin/documents', {
-        headers: {
-          'Authorization': `Bearer ${adminToken}`
-        }
-      });
+  const checkAuth = async () => {
+    const token = localStorage.getItem('authToken');
+    const storedUserData = localStorage.getItem('userData');
 
-      if (response.ok) {
-        localStorage.setItem('adminToken', adminToken);
-        setIsAuthenticated(true);
-        await loadDocuments(adminToken);
-        setMessage('Successfully authenticated!');
-      } else {
-        setMessage('Invalid admin token');
+    if (!token || !storedUserData) {
+      setLoading(false);
+      return;
+    }
+
+    try {
+      const userData = JSON.parse(storedUserData);
+
+      // Check if user is admin
+      if (userData.role !== 'admin') {
+        setLoading(false);
+        return;
       }
+
+      setIsAuthenticated(true);
+      setUserData(userData);
+      await loadDocuments(token);
     } catch (error) {
-      setMessage('Authentication failed');
+      console.error('Auth check failed:', error);
+    } finally {
+      setLoading(false);
     }
   };
 
@@ -82,12 +83,13 @@ export default function AdminPage() {
 
     const formData = new FormData();
     formData.append('file', file);
+    const token = localStorage.getItem('authToken');
 
     try {
       const response = await fetch('http://127.0.0.1:8000/admin/upload', {
         method: 'POST',
         headers: {
-          'Authorization': `Bearer ${adminToken}`
+          'Authorization': `Bearer ${token}`
         },
         body: formData
       });
@@ -96,7 +98,7 @@ export default function AdminPage() {
 
       if (result.success) {
         setMessage(`Successfully uploaded ${result.filename} (${result.chunks_created} chunks created)`);
-        await loadDocuments(adminToken);
+        await loadDocuments(token!);
       } else {
         setMessage(`Upload failed: ${result.error}`);
       }
@@ -136,17 +138,18 @@ export default function AdminPage() {
   const deleteDocument = async (filename: string) => {
     if (!confirm(`Delete ${filename}?`)) return;
 
+    const token = localStorage.getItem('authToken');
     try {
       const response = await fetch(`http://127.0.0.1:8000/admin/documents/${filename}`, {
         method: 'DELETE',
         headers: {
-          'Authorization': `Bearer ${adminToken}`
+          'Authorization': `Bearer ${token}`
         }
       });
 
       if (response.ok) {
         setMessage(`Successfully deleted ${filename}`);
-        await loadDocuments(adminToken);
+        await loadDocuments(token!);
       } else {
         setMessage(`Failed to delete ${filename}`);
       }
@@ -156,47 +159,37 @@ export default function AdminPage() {
   };
 
   const logout = () => {
-    localStorage.removeItem('adminToken');
+    localStorage.removeItem('authToken');
+    localStorage.removeItem('userData');
     setIsAuthenticated(false);
-    setAdminToken('');
+    setUserData(null);
     setDocuments([]);
     setMessage('Logged out');
   };
 
+  if (loading) {
+    return (
+      <div className="flex items-center justify-center min-h-screen">
+        <div className="text-center">
+          <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-[#01953f] mx-auto mb-4"></div>
+          <p className="text-gray-600">Loading...</p>
+        </div>
+      </div>
+    );
+  }
+
   if (!isAuthenticated) {
     return (
-      <div className="min-h-screen bg-gray-50 flex items-center justify-center">
-        <div className="max-w-md w-full bg-white rounded-lg shadow-md p-8">
-          <h1 className="text-2xl font-bold text-center mb-6">Admin Login</h1>
-
-          <form onSubmit={handleLogin} className="space-y-4">
-            <div>
-              <label className="block text-sm font-medium text-gray-700 mb-2">
-                Admin Token
-              </label>
-              <input
-                type="password"
-                value={adminToken}
-                onChange={(e) => setAdminToken(e.target.value)}
-                className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
-                placeholder="Enter admin token"
-                required
-              />
-            </div>
-
-            <button
-              type="submit"
-              className="w-full bg-blue-600 text-white py-2 px-4 rounded-md hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-blue-500"
-            >
-              Login
-            </button>
-          </form>
-
-          {message && (
-            <div className={`mt-4 p-3 rounded ${message.includes('Success') ? 'bg-green-100 text-green-700' : 'bg-red-100 text-red-700'}`}>
-              {message}
-            </div>
-          )}
+      <div className="flex items-center justify-center min-h-screen bg-gray-50">
+        <div className="text-center">
+          <h1 className="text-2xl font-bold text-gray-800 mb-4">Access Denied</h1>
+          <p className="text-gray-600 mb-6">Admin access required. Please log in as an admin user.</p>
+          <a
+            href="/"
+            className="bg-[#01953f] hover:bg-[#01fb6a] hover:text-black text-white py-2 px-4 rounded-lg transition-all duration-200 font-medium"
+          >
+            Go to Home & Login
+          </a>
         </div>
       </div>
     );
@@ -208,13 +201,29 @@ export default function AdminPage() {
         {/* Header */}
         <div className="bg-white rounded-lg shadow-md p-6 mb-6">
           <div className="flex justify-between items-center">
-            <h1 className="text-2xl font-bold text-gray-900">Document Admin</h1>
-            <button
-              onClick={logout}
-              className="px-4 py-2 text-sm text-gray-600 hover:text-gray-800"
-            >
-              Logout
-            </button>
+            <div className="flex items-center space-x-3">
+              <img
+                src="https://velocity.idevelopment.site/uploads/shape_27_1_1d90ad6dd8.svg"
+                alt="Velocity Logo"
+                className="w-8 h-8"
+              />
+              <h1 className="text-2xl font-bold text-gray-900">Admin Dashboard</h1>
+            </div>
+            <div className="flex items-center space-x-4">
+              <span className="text-sm text-gray-600">Welcome, {userData?.username}</span>
+              <a
+                href="/"
+                className="bg-[#01953f] hover:bg-[#01fb6a] hover:text-black text-white py-2 px-4 rounded-lg transition-all duration-200 font-medium text-sm mr-2"
+              >
+                Back to Chat
+              </a>
+              <button
+                onClick={logout}
+                className="px-4 py-2 text-sm text-gray-600 hover:text-gray-800"
+              >
+                Logout
+              </button>
+            </div>
           </div>
         </div>
 

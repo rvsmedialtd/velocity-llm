@@ -26,6 +26,7 @@ const AuthModal: React.FC<AuthModalProps> = ({ isOpen, onClose, onAuthSuccess })
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState('');
   const [isSuperAdmin, setIsSuperAdmin] = useState(false);
+  const [isAdminLogin, setIsAdminLogin] = useState(false);
   const [isAdminRegister, setIsAdminRegister] = useState(false);
 
   const [loginData, setLoginData] = useState<LoginData>({
@@ -47,10 +48,12 @@ const AuthModal: React.FC<AuthModalProps> = ({ isOpen, onClose, onAuthSuccess })
     setError('');
 
     try {
-      // Choose endpoint based on super admin checkbox
+      // Choose endpoint based on login type
       const endpoint = isSuperAdmin
         ? 'http://127.0.0.1:8000/super-admin/auth/login'
-        : 'http://127.0.0.1:8000/auth/login';
+        : isAdminLogin
+          ? 'http://127.0.0.1:8000/admin/auth/login'
+          : 'http://127.0.0.1:8000/auth/login';
 
       const response = await fetch(endpoint, {
         method: 'POST',
@@ -149,6 +152,7 @@ const AuthModal: React.FC<AuthModalProps> = ({ isOpen, onClose, onAuthSuccess })
     setRegisterData({ username: '', email: '', password: '', confirmPassword: '', inviteCode: '' });
     setError('');
     setIsSuperAdmin(false);
+    setIsAdminLogin(false);
     setIsAdminRegister(false);
   };
 
@@ -211,17 +215,37 @@ const AuthModal: React.FC<AuthModalProps> = ({ isOpen, onClose, onAuthSuccess })
                 required
               />
             </div>
-            <div className="flex items-center">
-              <input
-                type="checkbox"
-                id="superAdmin"
-                checked={isSuperAdmin}
-                onChange={(e) => setIsSuperAdmin(e.target.checked)}
-                className="h-4 w-4 text-[#01953f] focus:ring-[#01953f] border-gray-300 rounded"
-              />
-              <label htmlFor="superAdmin" className="ml-2 block text-sm text-gray-700">
-                Super Admin Login
-              </label>
+            <div className="space-y-2">
+              <div className="flex items-center">
+                <input
+                  type="checkbox"
+                  id="adminLogin"
+                  checked={isAdminLogin}
+                  onChange={(e) => {
+                    setIsAdminLogin(e.target.checked);
+                    if (e.target.checked) setIsSuperAdmin(false);
+                  }}
+                  className="h-4 w-4 text-[#01953f] focus:ring-[#01953f] border-gray-300 rounded"
+                />
+                <label htmlFor="adminLogin" className="ml-2 block text-sm text-gray-700">
+                  Admin Login
+                </label>
+              </div>
+              <div className="flex items-center">
+                <input
+                  type="checkbox"
+                  id="superAdmin"
+                  checked={isSuperAdmin}
+                  onChange={(e) => {
+                    setIsSuperAdmin(e.target.checked);
+                    if (e.target.checked) setIsAdminLogin(false);
+                  }}
+                  className="h-4 w-4 text-[#01953f] focus:ring-[#01953f] border-gray-300 rounded"
+                />
+                <label htmlFor="superAdmin" className="ml-2 block text-sm text-gray-700">
+                  Super Admin Login
+                </label>
+              </div>
             </div>
             <button
               type="submit"

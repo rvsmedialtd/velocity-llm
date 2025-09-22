@@ -490,11 +490,36 @@ async def delete_chat_session(
         raise HTTPException(status_code=404, detail="Chat session not found")
     return {"success": True}
 
+@app.put("/user/chat/{conversation_id}/rename")
+async def rename_chat_session(
+    conversation_id: str,
+    request: dict,
+    current_user: Dict[str, Any] = Depends(get_current_user)
+):
+    """Rename a chat session."""
+    title = request.get("title", "").strip()
+    if not title:
+        raise HTTPException(status_code=400, detail="Title cannot be empty")
+
+    # Get the existing session
+    session = ChatSessionDB.get_chat_session(current_user["id"], conversation_id)
+    if not session:
+        raise HTTPException(status_code=404, detail="Chat session not found")
+
+    # Update with new title
+    ChatSessionDB.save_chat_session(
+        current_user["id"],
+        conversation_id,
+        session["messages"],
+        title
+    )
+    return {"success": True, "title": title}
+
 # Admin-only document management endpoints (now requires admin role)
 @app.post("/admin/upload")
 async def upload_document(
     file: UploadFile = File(...),
-    current_user: Dict[str, Any] = Depends(verify_super_admin_token)
+    current_user: Dict[str, Any] = Depends(get_current_admin)
 ):
     """Upload and process a document (admin only)."""
     try:
@@ -509,14 +534,14 @@ async def upload_document(
         raise HTTPException(status_code=500, detail=f"Error processing file: {str(e)}")
 
 @app.get("/admin/documents")
-async def list_documents(current_user: Dict[str, Any] = Depends(verify_super_admin_token)):
+async def list_documents(current_user: Dict[str, Any] = Depends(get_current_admin)):
     """List all uploaded documents (admin only)."""
     return {"documents": list_all_documents()}
 
 @app.delete("/admin/documents/{filename}")
 async def delete_document(
     filename: str,
-    current_user: Dict[str, Any] = Depends(verify_super_admin_token)
+    current_user: Dict[str, Any] = Depends(get_current_admin)
 ):
     """Delete a document by filename (admin only)."""
     result = delete_document_by_filename(filename)

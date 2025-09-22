@@ -3,6 +3,8 @@
 import InputBar from '@/components/InputBar';
 import MessageArea from '@/components/MessageArea';
 import AuthModal from '@/components/AuthModal';
+import Sidebar from '@/components/Sidebar';
+import ChatHistoryFlyout from '@/components/ChatHistoryFlyout';
 import React, { useState, useEffect } from 'react';
 import Link from 'next/link';
 
@@ -30,6 +32,7 @@ const Home = () => {
   const [userData, setUserData] = useState(null);
   const [chatHistory, setChatHistory] = useState([]);
   const [currentConversationId, setCurrentConversationId] = useState(null);
+  const [isChatHistoryOpen, setIsChatHistoryOpen] = useState(false);
 
   useEffect(() => {
     const token = localStorage.getItem('authToken');
@@ -122,6 +125,64 @@ const Home = () => {
     } catch (error) {
       console.error('Error saving conversation:', error);
     }
+  };
+
+  const deleteConversation = async (conversationId: string) => {
+    const token = localStorage.getItem('authToken');
+    if (!token) return;
+
+    try {
+      const response = await fetch(`http://127.0.0.1:8000/user/chat/${conversationId}`, {
+        method: 'DELETE',
+        headers: {
+          'Authorization': `Bearer ${token}`
+        }
+      });
+
+      if (response.ok) {
+        setChatHistory(prev => prev.filter((chat: any) => chat.conversation_id !== conversationId));
+        if (currentConversationId === conversationId) {
+          setMessages([]);
+          setCheckpointId(null);
+          setCurrentConversationId(null);
+        }
+      }
+    } catch (error) {
+      console.error('Error deleting conversation:', error);
+    }
+  };
+
+  const renameConversation = async (conversationId: string, newTitle: string) => {
+    const token = localStorage.getItem('authToken');
+    if (!token) return;
+
+    try {
+      const response = await fetch(`http://127.0.0.1:8000/user/chat/${conversationId}/rename`, {
+        method: 'PUT',
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${token}`
+        },
+        body: JSON.stringify({ title: newTitle })
+      });
+
+      if (response.ok) {
+        setChatHistory(prev => prev.map((chat: any) =>
+          chat.conversation_id === conversationId
+            ? { ...chat, title: newTitle }
+            : chat
+        ));
+      }
+    } catch (error) {
+      console.error('Error renaming conversation:', error);
+    }
+  };
+
+  const handleNewChat = () => {
+    setMessages([]);
+    setCheckpointId(null);
+    setCurrentConversationId(null);
+    setIsChatHistoryOpen(false);
   };
 
   const handleSubmit = async (e: React.FormEvent) => {
@@ -340,185 +401,79 @@ const Home = () => {
   };
 
   return (
-    <div className="flex h-screen bg-white">
+    <div className="flex h-screen bg-gray-50">
       {/* Sidebar */}
-      <div className="w-80 bg-black border-r border-gray-800 flex flex-col hidden md:flex">
-        {/* Logo and Header */}
-        <div className="p-6 border-b border-gray-800">
+      <Sidebar
+        isAuthenticated={isAuthenticated}
+        userData={userData}
+        onNewChat={handleNewChat}
+        onShowChatHistory={() => setIsChatHistoryOpen(true)}
+        onShowAuth={() => setIsAuthModalOpen(true)}
+        onLogout={handleLogout}
+        chatHistoryCount={chatHistory.length}
+      />
+
+      {/* Chat History Flyout */}
+      <ChatHistoryFlyout
+        isOpen={isChatHistoryOpen}
+        onClose={() => setIsChatHistoryOpen(false)}
+        chatHistory={chatHistory}
+        currentConversationId={currentConversationId}
+        onLoadConversation={loadConversation}
+        onDeleteConversation={deleteConversation}
+        onRenameConversation={renameConversation}
+      />
+
+      {/* Mobile Header */}
+      <div className="md:hidden bg-white border-b border-gray-200 p-4 fixed top-0 left-0 right-0 z-30">
+        <div className="flex items-center justify-between">
           <div className="flex items-center space-x-3">
             <img
               src="https://velocity.idevelopment.site/uploads/shape_27_1_1d90ad6dd8.svg"
               alt="Velocity Logo"
               className="w-8 h-8"
             />
-            
+            <span className="text-xl font-bold text-[#01953f]">Velocity</span>
           </div>
-          <p className="text-gray-400 text-sm mt-2"></p>
-        </div>
-
-        {/* Auth/User Section */}
-        <div className="p-6">
-          {isAuthenticated ? (
-            <div>
-             {/*<div className="text-white text-sm mb-4">
-                Welcome, {userData?.username}
-              </div>*/}
+          <div className="flex items-center space-x-2">
+            {isAuthenticated && (
               <button
-                onClick={() => {
-                  setMessages([]);
-                  setCheckpointId(null);
-                  setCurrentConversationId(null);
-                }}
-                className="w-full hover:text-black text-white py-3 px-4 rounded-lg transition-all duration-200 font-medium mb-3"
+                onClick={() => setIsChatHistoryOpen(true)}
+                className="p-2 rounded-lg text-gray-600 hover:bg-gray-100 transition-colors relative"
               >
-                <img src="https://velocity.idevelopment.site/uploads/add_3_540b2a0136.png"></img>
+                <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M8 12h.01M12 12h.01M16 12h.01M21 12c0 4.418-4.03 8-9 8a9.863 9.863 0 01-4.255-.949L3 20l1.395-3.72C3.512 15.042 3 13.574 3 12c0-4.418 4.03-8 9-8s9 3.582 9 8z"></path>
+                </svg>
+                {chatHistory.length > 0 && (
+                  <span className="absolute -top-1 -right-1 bg-[#01953f] text-white text-xs px-1.5 py-0.5 rounded-full min-w-[18px] text-center">
+                    {chatHistory.length}
+                  </span>
+                )}
               </button>
-              {/*<button
+            )}
+            {isAuthenticated ? (
+              <button
                 onClick={handleLogout}
-                className="w-full bg-gray-700 hover:bg-gray-600 text-white py-2 px-4 rounded-lg transition-all duration-200 font-medium text-sm"
+                className="p-2 rounded-lg text-red-600 hover:bg-red-50 transition-colors"
               >
-                Logout
-              </button>*/}
-            </div>
-          ) : (
-            <button
-              onClick={() => setIsAuthModalOpen(true)}
-              className="w-full hover:text-black text-white py-3 px-4 rounded-lg transition-all duration-200 font-medium"
-            >
-             <img src="https://velocity.idevelopment.site/uploads/add_3_540b2a0136.png"></img>
-            </button>
-          )}
-        </div>
-
-        {/* Chat History */}
-        <div className="flex-1 px-6">
-          {isAuthenticated && chatHistory.length > 0 && (
-            <>
-              
-              <img class="saved" width="100px" src="https://velocity.idevelopment.site/uploads/save_instagram_3_5063ae7622.png"/>
-              <h3 className="admin-text">Saved</h3>
-              <div className="space-y-2">
-                {chatHistory.map((chat: any) => (
-                  <div
-                    key={chat.conversation_id}
-                    onClick={() => loadConversation(chat.conversation_id)}
-                    className={`text-gray-500 text-sm py-2 px-3 rounded hover:bg-gray-900 cursor-pointer transition-colors ${
-                      currentConversationId === chat.conversation_id ? 'bg-gray-800 text-white' : ''
-                    }`}
-                  >
-                    <div className="truncate">
-                      {chat.title || 'Untitled Chat'}
-                    </div>
-                    <div className="text-xs text-gray-600 mt-1">
-                      {new Date(chat.updated_at).toLocaleDateString()}
-                    </div>
-                  </div>
-                ))}
-              </div>
-            </>
-          )}
-        </div>
-
-        {/* Admin Link */}
-        <div className="p-6 border-t border-gray-800">
-          {isAuthenticated && userData?.role === 'super_admin' ? (
-            <Link
-              href="/super-admin"
-              className="block w-full text-center text-gray-400 hover:text-white text-sm py-2 px-3 rounded hover:bg-gray-900 transition-colors"
-            >
-            <img class="saved"
-        src="https://velocity.idevelopment.site/uploads/dashboard_1_54ab21237e.png"
-        alt="Dashboard"></img><span class="admin-text">Admin</span>
-            </Link>
-          ) : (
-            <Link
-              href="/admin"
-              className="block w-full bg-img text-center text-gray-400 hover:text-white text-sm py-2 px-3 rounded hover:bg-gray-900 transition-colors"
-            >
-              👩🏼‍💼 Admin Dashboard
-            </Link>
-          )}
-        </div>
-
-        {/* Footer */}
-        <div className="p-4 border-t border-gray-800">
-          <div className="text-gray-400 text-xs">
-            Powered by Velocity AI
+                <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M17 16l4-4m0 0l-4-4m4 4H7m6 4v1a3 3 0 01-3 3H6a3 3 0 01-3-3V7a3 3 0 013-3h4a3 3 0 013 3v1"></path>
+                </svg>
+              </button>
+            ) : (
+              <button
+                onClick={() => setIsAuthModalOpen(true)}
+                className="px-3 py-2 bg-[#01953f] text-white rounded-lg text-sm font-medium"
+              >
+                Sign In
+              </button>
+            )}
           </div>
         </div>
       </div>
 
       {/* Main Content Area */}
-      <div className="flex-1 flex flex-col">
-        {/* Top Bar */}
-        <div className="bg-white border-b border-gray-200 px-6 py-4">
-          <div className="flex items-center justify-between">
-            {/* Mobile logo for small screens */}
-            <div className="flex items-center space-x-3 md:hidden">
-              <img
-                src="https://velocity.idevelopment.site/uploads/velocity_w_2300faad13.svg"
-                alt="Velocity Logo"
-                className="w-6 h-6"
-              />
-              <h1 className="text-xl font-bold text-[#01953f]">Velocity</h1>
-            </div>
-
-            {/* Desktop title */}
-            <h2 className="text-lg font-semibold text-gray-800 hidden md:block">Search</h2>
-
-            <div className="flex items-center space-x-4">
-              {/* Mobile new chat button */}
-              {isAuthenticated && (
-                <button
-                  className="md:hidden text-gray-500 hover:text-gray-700"
-                  onClick={() => {
-                    setMessages([]);
-                    setCheckpointId(null);
-                    setCurrentConversationId(null);
-                  }}
-                >
-                  <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M12 6v6m0 0v6m0-6h6m-6 0H6"></path>
-                  </svg>
-                </button>
-              )}
-
-              {/* Mobile auth button */}
-              {!isAuthenticated && (
-                <button
-                  className="md:hidden text-gray-500 hover:text-gray-700"
-                  onClick={() => setIsAuthModalOpen(true)}
-                >
-                  <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z"></path>
-                  </svg>
-                </button>
-              )}
-
-              {/* Settings button */}
-              <button className="text-gray-500 hover:text-gray-700">
-                <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M10.325 4.317c.426-1.756 2.924-1.756 3.35 0a1.724 1.724 0 002.573 1.066c1.543-.94 3.31.826 2.37 2.37a1.724 1.724 0 001.065 2.572c1.756.426 1.756 2.924 0 3.35a1.724 1.724 0 00-1.066 2.573c.94 1.543-.826 3.31-2.37 2.37a1.724 1.724 0 00-2.572 1.065c-.426 1.756-2.924 1.756-3.35 0a1.724 1.724 0 00-2.573-1.066c-1.543.94-3.31-.826-2.37-2.37a1.724 1.724 0 00-1.065-2.572c-1.756-.426-1.756-2.924 0-3.35a1.724 1.724 0 001.066-2.573c-.94-1.543.826-3.31 2.37-2.37.996.608 2.296.07 2.572-1.065z"></path>
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z"></path>
-                </svg>
-              </button>
-
-              {/* Desktop user info / logout */}
-              {isAuthenticated && (
-                <div className="hidden md:flex items-center space-x-2">
-                  <span className="text-sm text-gray-600">Welcome, {userData?.username} | </span>
-                  <button
-                    onClick={handleLogout}
-                    className="text-sm text-gray-500 hover:text-gray-700"
-                  >
-                    Logout
-                  </button>
-                </div>
-              )}
-            </div>
-          </div>
-        </div>
-
+      <div className="flex-1 flex flex-col md:ml-20 pt-16 md:pt-0">
         {/* Messages Area */}
         <div className="flex-1 overflow-y-auto">
           {messages.length === 0 ? (
@@ -584,7 +539,7 @@ const Home = () => {
         </div>
 
         {/* Input Bar */}
-        <div className="border-t border-gray-200 bg-white">
+        <div className="bg-white border-t border-gray-200">
           <InputBar
             currentMessage={currentMessage}
             setCurrentMessage={setCurrentMessage}
