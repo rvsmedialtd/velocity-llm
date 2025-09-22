@@ -4,9 +4,11 @@ interface InputBarProps {
     currentMessage: string;
     setCurrentMessage: (message: string) => void;
     onSubmit: (e: React.FormEvent) => void;
+    placeholder?: string;
+    disabled?: boolean;
 }
 
-const InputBar = ({ currentMessage, setCurrentMessage, onSubmit }: InputBarProps) => {
+const InputBar = ({ currentMessage, setCurrentMessage, onSubmit, placeholder = "Ask me anything...", disabled = false }: InputBarProps) => {
 
     const handleChange = (e: React.ChangeEvent<HTMLInputElement>) => {
         setCurrentMessage(e.target.value)
@@ -29,16 +31,17 @@ const InputBar = ({ currentMessage, setCurrentMessage, onSubmit }: InputBarProps
 
                     <input
                         type="text"
-                        placeholder="Ask me anything..."
+                        placeholder={placeholder}
                         value={currentMessage}
                         onChange={handleChange}
-                        className="flex-1 px-4 py-4 bg-transparent focus:outline-none text-gray-700 placeholder-gray-400 text-lg"
+                        disabled={disabled}
+                        className="flex-1 px-4 py-4 bg-transparent focus:outline-none text-gray-700 placeholder-gray-400 text-lg disabled:cursor-not-allowed disabled:opacity-50"
                     />
 
                     <div className="flex items-center pr-2">
                         <button
                             type="submit"
-                            disabled={!currentMessage.trim()}
+                            disabled={!currentMessage.trim() || disabled}
                             className="bg-[#01953f] hover:bg-[#01fb6a] hover:text-black disabled:bg-gray-300 disabled:text-gray-500 text-white rounded-lg p-3 transition-all duration-200 group disabled:cursor-not-allowed"
                         >
                             <svg className="w-5 h-5 transform group-hover:scale-110 transition-transform duration-200" fill="none" stroke="currentColor" viewBox="0 0 24 24">
