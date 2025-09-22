@@ -1,5 +1,29 @@
 import React from 'react';
 
+interface SearchInfo {
+    stages: string[];
+    query: string;
+    urls: string[] | string;
+    error?: string;
+}
+
+interface Message {
+    id: number;
+    content: string;
+    isUser: boolean;
+    type: string;
+    isLoading?: boolean;
+    searchInfo?: SearchInfo;
+}
+
+interface SearchStagesProps {
+    searchInfo: SearchInfo;
+}
+
+interface MessageAreaProps {
+    messages: Message[];
+}
+
 const PremiumTypingAnimation = () => {
     return (
         <div className="flex items-center">
@@ -15,7 +39,7 @@ const PremiumTypingAnimation = () => {
     );
 };
 
-const SearchStages = ({ searchInfo }) => {
+const SearchStages = ({ searchInfo }: SearchStagesProps) => {
     if (!searchInfo || !searchInfo.stages || searchInfo.stages.length === 0) return null;
 
     return (
@@ -26,11 +50,11 @@ const SearchStages = ({ searchInfo }) => {
                 {searchInfo.stages.includes('searching') && (
                     <div className="relative">
                         {/* Green dot */}
-                        <div className="absolute -left-3 top-1 w-2.5 h-2.5 bg-teal-400 rounded-full z-10 shadow-sm"></div>
+                        <div className="absolute -left-3 top-1 w-2.5 h-2.5 bg-[#01fb6a] rounded-full z-10 shadow-sm"></div>
 
                         {/* Connecting line to next item if reading exists */}
                         {searchInfo.stages.includes('reading') && (
-                            <div className="absolute -left-[7px] top-3 w-0.5 h-[calc(100%+1rem)] bg-gradient-to-b from-teal-300 to-teal-200"></div>
+                            <div className="absolute -left-[7px] top-3 w-0.5 h-[calc(100%+1rem)] bg-gradient-to-b from-[#01fb6a] to-[#01953f]"></div>
                         )}
 
                         <div className="flex flex-col">
@@ -53,7 +77,7 @@ const SearchStages = ({ searchInfo }) => {
                 {searchInfo.stages.includes('reading') && (
                     <div className="relative">
                         {/* Green dot */}
-                        <div className="absolute -left-3 top-1 w-2.5 h-2.5 bg-teal-400 rounded-full z-10 shadow-sm"></div>
+                        <div className="absolute -left-3 top-1 w-2.5 h-2.5 bg-[#01fb6a] rounded-full z-10 shadow-sm"></div>
 
                         <div className="flex flex-col">
                             <span className="font-medium mb-2 ml-2">Reading</span>
@@ -84,7 +108,7 @@ const SearchStages = ({ searchInfo }) => {
                 {searchInfo.stages.includes('writing') && (
                     <div className="relative">
                         {/* Green dot with subtle glow effect */}
-                        <div className="absolute -left-3 top-1 w-2.5 h-2.5 bg-teal-400 rounded-full z-10 shadow-sm"></div>
+                        <div className="absolute -left-3 top-1 w-2.5 h-2.5 bg-[#01fb6a] rounded-full z-10 shadow-sm"></div>
                         <span className="font-medium pl-2">Writing answer</span>
                     </div>
                 )}
@@ -105,35 +129,159 @@ const SearchStages = ({ searchInfo }) => {
     );
 };
 
-const MessageArea = ({ messages }) => {
+const MessageArea = ({ messages }: MessageAreaProps) => {
+    // Function to parse content and render with custom formatting
+    const parseAndRenderContent = (content: string) => {
+        // Split content into lines for processing
+        const lines = content.split('\n');
+        const elements: React.ReactNode[] = [];
+        let lineKey = 0;
+
+        for (let i = 0; i < lines.length; i++) {
+            const currentLine = lines[i];
+            const nextLine = lines[i + 1];
+
+            // Check if current line is just a number (like "1.") and next line starts with bold text
+            if (currentLine.match(/^\d+\.\s*$/) && nextLine && nextLine.match(/^\*\*[^*]+\*\*/)) {
+                // Combine them and process
+                const combinedLine = currentLine.trim() + nextLine + ' ';
+                elements.push(renderLineWithFormatting(combinedLine, lineKey++));
+                i++; // Skip the next line since we've processed it
+            } else if (currentLine.trim()) {
+                elements.push(renderLineWithFormatting(currentLine, lineKey++));
+            } else {
+                // Empty line - add spacing
+                elements.push(<br key={lineKey++} />);
+            }
+        }
+
+        return elements;
+    };
+
+    // Function to render a line with bold text and read more links
+    const renderLineWithFormatting = (line: string, key: number) => {
+        const parts: React.ReactNode[] = [];
+        let lastIndex = 0;
+        let partKey = 0;
+
+        // Find bold text patterns **text**
+        const boldRegex = /\*\*([^*]+)\*\*/g;
+        let match;
+
+        while ((match = boldRegex.exec(line)) !== null) {
+            // Add text before the bold part
+            if (match.index > lastIndex) {
+                parts.push(line.substring(lastIndex, match.index));
+            }
+
+            // Add the bold text
+            parts.push(<strong key={`${key}-${partKey++}`} className="font-semibold">{match[1]}</strong>);
+            lastIndex = match.index + match[0].length;
+        }
+
+        // Add remaining text
+        if (lastIndex < line.length) {
+            let remainingText = line.substring(lastIndex);
+
+            // Check for read more patterns and add links
+            const readMorePattern = /(Read more on|Explore more on)\s+([A-Z][A-Za-z\s]+)\.?$/;
+            const sourcePattern = /\.\s+(NBC News|ABC News|CNN|BBC|Reuters|AP News|Fox News)\.?$/;
+
+            if (readMorePattern.test(remainingText)) {
+                remainingText = remainingText.replace(readMorePattern, (match, prefix, source) => {
+                    parts.push(
+                        <span key={`${key}-${partKey++}`}>
+                            {remainingText.substring(0, remainingText.indexOf(match))}
+                            <a
+                                href="#"
+                                className="text-[#01953f] hover:text-[#01fb6a] underline text-sm font-medium ml-1"
+                                onClick={(e) => e.preventDefault()}
+                            >
+                                {prefix} {source}
+                            </a>
+                        </span>
+                    );
+                    return '';
+                });
+            } else if (sourcePattern.test(remainingText)) {
+                remainingText = remainingText.replace(sourcePattern, (match, source) => {
+                    const beforeMatch = remainingText.substring(0, remainingText.indexOf(match));
+                    parts.push(
+                        <span key={`${key}-${partKey++}`}>
+                            {beforeMatch}.{' '}
+                            <a
+                                href="#"
+                                className="text-[#01953f] hover:text-[#01fb6a] underline text-sm font-medium"
+                                onClick={(e) => e.preventDefault()}
+                            >
+                                Read more on {source}
+                            </a>
+                        </span>
+                    );
+                    return '';
+                });
+            } else {
+                parts.push(remainingText);
+            }
+        }
+
+        return (
+            <div key={key} className="mb-3 leading-relaxed">
+                {parts}
+            </div>
+        );
+    };
+
     return (
-        <div className="flex-grow overflow-y-auto bg-[#FCFCF8] border-b border-gray-100" style={{ minHeight: 0 }}>
+        <div className="flex-grow overflow-y-auto bg-white" style={{ minHeight: 0 }}>
             <div className="max-w-4xl mx-auto p-6">
                 {messages.map((message) => (
-                    <div key={message.id} className={`flex ${message.isUser ? 'justify-end' : 'justify-start'} mb-5`}>
-                        <div className="flex flex-col max-w-md">
-                            {/* Search Status Display - Now ABOVE the message */}
-                            {!message.isUser && message.searchInfo && (
-                                <SearchStages searchInfo={message.searchInfo} />
-                            )}
-
-                            {/* Message Content */}
-                            <div
-                                className={`rounded-lg py-3 px-5 ${message.isUser
-                                    ? 'bg-gradient-to-br from-[#5E507F] to-[#4A3F71] text-white rounded-br-none shadow-md'
-                                    : 'bg-[#F3F3EE] text-gray-800 border border-gray-200 rounded-bl-none shadow-sm'
-                                    }`}
-                            >
-                                {message.isLoading ? (
-                                    <PremiumTypingAnimation />
-                                ) : (
-                                    message.content || (
-                                        // Fallback if content is empty but not in loading state
-                                        <span className="text-gray-400 text-xs italic">Waiting for response...</span>
-                                    )
-                                )}
+                    <div key={message.id} className={`mb-8`}>
+                        {message.isUser ? (
+                            // User Message
+                            <div className="flex justify-end">
+                                <div className="max-w-[70%] bg-[#01953f] text-white rounded-2xl rounded-br-md px-6 py-4 shadow-sm">
+                                    <p className="text-white leading-relaxed">{message.content}</p>
+                                </div>
                             </div>
-                        </div>
+                        ) : (
+                            // AI Message
+                            <div className="flex">
+                                <div className="w-8 h-8 rounded-full bg-[#01953f] flex items-center justify-center mr-4 mt-1 flex-shrink-0">
+                                    <img
+                                        src="https://velocity.idevelopment.site/uploads/shape_27_1_1d90ad6dd8.svg"
+                                        alt="Velocity"
+                                        className="w-5 h-5"
+                                    />
+                                </div>
+                                <div className="flex-1">
+                                    {/* Search Status Display - Above the message */}
+                                    {message.searchInfo && (
+                                        <SearchStages searchInfo={message.searchInfo} />
+                                    )}
+
+                                    {/* Message Content */}
+                                    <div className="prose prose-gray max-w-none">
+                                        {message.isLoading ? (
+                                            <div className="flex items-center space-x-2 text-gray-500">
+                                                <PremiumTypingAnimation />
+                                                <span className="text-sm">Thinking...</span>
+                                            </div>
+                                        ) : (
+                                            <div className="text-gray-800 leading-relaxed">
+                                                {message.content ? (
+                                                    <div className="max-w-none leading-relaxed">
+                                                        {parseAndRenderContent(message.content)}
+                                                    </div>
+                                                ) : (
+                                                    <span className="text-gray-400 text-sm italic">Waiting for response...</span>
+                                                )}
+                                            </div>
+                                        )}
+                                    </div>
+                                </div>
+                            </div>
+                        )}
                     </div>
                 ))}
             </div>

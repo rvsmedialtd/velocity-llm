@@ -1,6 +1,5 @@
 "use client"
 
-import Header from '@/components/Header';
 import InputBar from '@/components/InputBar';
 import MessageArea from '@/components/MessageArea';
 import React, { useState } from 'react';
@@ -21,18 +20,11 @@ interface Message {
 }
 
 const Home = () => {
-  const [messages, setMessages] = useState<Message[]>([
-    {
-      id: 1,
-      content: 'Hi there, how can I help you?',
-      isUser: false,
-      type: 'message'
-    }
-  ]);
+  const [messages, setMessages] = useState<Message[]>([]);
   const [currentMessage, setCurrentMessage] = useState("");
   const [checkpointId, setCheckpointId] = useState(null);
 
-  const handleSubmit = async (e) => {
+  const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     if (currentMessage.trim()) {
       // First add the user message to the chat
@@ -71,7 +63,7 @@ const Home = () => {
         ]);
 
         // Create URL with checkpoint ID if it exists
-        let url = `https://perplexity-api.onrender.com/chat_stream/${encodeURIComponent(userInput)}`;
+        let url = `http://127.0.0.1:8000/chat_stream/${encodeURIComponent(userInput)}`;
         if (checkpointId) {
           url += `?checkpoint_id=${encodeURIComponent(checkpointId)}`;
         }
@@ -79,7 +71,7 @@ const Home = () => {
         // Connect to SSE endpoint using EventSource
         const eventSource = new EventSource(url);
         let streamedContent = "";
-        let searchData = null;
+        let searchData: SearchInfo | null = null;
         let hasReceivedContent = false;
 
         // Process incoming messages
@@ -227,12 +219,150 @@ const Home = () => {
   };
 
   return (
-    <div className="flex justify-center bg-gray-100 min-h-screen py-8 px-4">
-      {/* Main container with refined shadow and border */}
-      <div className="w-[70%] bg-white flex flex-col rounded-xl shadow-lg border border-gray-100 overflow-hidden h-[90vh]">
-        <Header />
-        <MessageArea messages={messages} />
-        <InputBar currentMessage={currentMessage} setCurrentMessage={setCurrentMessage} onSubmit={handleSubmit} />
+    <div className="flex h-screen bg-white">
+      {/* Sidebar */}
+      <div className="w-80 bg-black border-r border-gray-800 flex flex-col hidden md:flex">
+        {/* Logo and Header */}
+        <div className="p-6 border-b border-gray-800">
+          <div className="flex items-center space-x-3">
+            <img
+              src="https://velocity.idevelopment.site/uploads/shape_27_1_1d90ad6dd8.svg"
+              alt="Velocity Logo"
+              className="w-8 h-8"
+            />
+            
+          </div>
+          <p className="text-gray-400 text-sm mt-2"></p>
+        </div>
+
+        {/* New Chat Button */}
+        <div className="p-6">
+          <button
+            onClick={() => {
+              setMessages([]);
+              setCheckpointId(null);
+            }}
+            className="w-full bg-[#01953f] hover:bg-[#01fb6a] hover:text-black text-white py-3 px-4 rounded-lg transition-all duration-200 font-medium"
+          >
+            +
+          </button>
+        </div>
+
+        {/* Chat History - Placeholder */}
+        <div className="flex-1 px-6">
+          <h3 className="text-gray-400 text-sm font-medium mb-4"></h3>
+          <div className="space-y-2">
+            {/* Placeholder for chat history */}
+            <div className="text-gray-500 text-sm py-2 px-3 rounded hover:bg-gray-900 cursor-pointer">
+            
+            </div>
+          </div>
+        </div>
+
+        {/* Footer */}
+        <div className="p-6 border-t border-gray-800">
+          <div className="text-gray-400 text-xs">
+            Powered by Velocity AI
+          </div>
+        </div>
+      </div>
+
+      {/* Main Content Area */}
+      <div className="flex-1 flex flex-col">
+        {/* Top Bar */}
+        <div className="bg-white border-b border-gray-200 px-6 py-4">
+          <div className="flex items-center justify-between">
+            {/* Mobile logo for small screens */}
+            <div className="flex items-center space-x-3 md:hidden">
+              <img
+                src="https://velocity.idevelopment.site/uploads/velocity_w_2300faad13.svg"
+                alt="Velocity Logo"
+                className="w-6 h-6"
+              />
+              <h1 className="text-xl font-bold text-[#01953f]">Velocity</h1>
+            </div>
+
+            {/* Desktop title */}
+            <h2 className="text-lg font-semibold text-gray-800 hidden md:block">Search</h2>
+
+            <div className="flex items-center space-x-4">
+              <button
+                className="md:hidden text-gray-500 hover:text-gray-700"
+                onClick={() => {
+                  setMessages([]);
+                  setCheckpointId(null);
+                }}
+              >
+                <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M12 6v6m0 0v6m0-6h6m-6 0H6"></path>
+                </svg>
+              </button>
+              <button className="text-gray-500 hover:text-gray-700">
+                <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M10.325 4.317c.426-1.756 2.924-1.756 3.35 0a1.724 1.724 0 002.573 1.066c1.543-.94 3.31.826 2.37 2.37a1.724 1.724 0 001.065 2.572c1.756.426 1.756 2.924 0 3.35a1.724 1.724 0 00-1.066 2.573c.94 1.543-.826 3.31-2.37 2.37a1.724 1.724 0 00-2.572 1.065c-.426 1.756-2.924 1.756-3.35 0a1.724 1.724 0 00-2.573-1.066c-1.543.94-3.31-.826-2.37-2.37a1.724 1.724 0 00-1.065-2.572c-1.756-.426-1.756-2.924 0-3.35a1.724 1.724 0 001.066-2.573c-.94-1.543.826-3.31 2.37-2.37.996.608 2.296.07 2.572-1.065z"></path>
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z"></path>
+                </svg>
+              </button>
+            </div>
+          </div>
+        </div>
+
+        {/* Messages Area */}
+        <div className="flex-1 overflow-y-auto">
+          {messages.length === 0 ? (
+            // Welcome Screen
+            <div className="flex flex-col items-center justify-center h-full px-6">
+              <div className="text-center max-w-2xl">
+                <div className="mb-8">
+                  <img
+                    src="https://velocity.idevelopment.site/uploads/shape_27_1_1d90ad6dd8.svg"
+                    alt="Velocity Logo"
+                    className="w-16 h-16 mx-auto mb-4 opacity-80"
+                  />
+                  <h2 className="text-3xl font-bold text-gray-800 mb-2">Welcome to Velocity</h2>
+                  <p className="text-gray-600 text-lg">Ask me anything and I'll search the web to give you accurate, up-to-date answers.</p>
+                </div>
+
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mb-8">
+                  <div className="bg-gray-50 p-4 rounded-lg border hover:border-[#01953f] transition-colors cursor-pointer"
+                       onClick={() => setCurrentMessage("What's the latest news in AI?")}>
+                    <div className="text-[#01953f] mb-2">🤖</div>
+                    <h3 className="font-medium text-gray-800 mb-1">Latest AI News</h3>
+                    <p className="text-gray-600 text-sm">Get the most recent developments in artificial intelligence</p>
+                  </div>
+
+                  <div className="bg-gray-50 p-4 rounded-lg border hover:border-[#01953f] transition-colors cursor-pointer"
+                       onClick={() => setCurrentMessage("Explain quantum computing")}>
+                    <div className="text-[#01953f] mb-2">⚛️</div>
+                    <h3 className="font-medium text-gray-800 mb-1">Explain Complex Topics</h3>
+                    <p className="text-gray-600 text-sm">Break down complex subjects into understandable explanations</p>
+                  </div>
+
+                  <div className="bg-gray-50 p-4 rounded-lg border hover:border-[#01953f] transition-colors cursor-pointer"
+                       onClick={() => setCurrentMessage("Best restaurants in New York")}>
+                    <div className="text-[#01953f] mb-2">🍽️</div>
+                    <h3 className="font-medium text-gray-800 mb-1">Local Recommendations</h3>
+                    <p className="text-gray-600 text-sm">Find the best places to eat, visit, or explore</p>
+                  </div>
+
+                  <div className="bg-gray-50 p-4 rounded-lg border hover:border-[#01953f] transition-colors cursor-pointer"
+                       onClick={() => setCurrentMessage("How to learn Python programming?")}>
+                    <div className="text-[#01953f] mb-2">💻</div>
+                    <h3 className="font-medium text-gray-800 mb-1">Learning Resources</h3>
+                    <p className="text-gray-600 text-sm">Get guidance on learning new skills and topics</p>
+                  </div>
+                </div>
+              </div>
+            </div>
+          ) : (
+            <MessageArea messages={messages} />
+          )}
+        </div>
+
+        {/* Input Bar */}
+        <div className="border-t border-gray-200 bg-white">
+          <InputBar currentMessage={currentMessage} setCurrentMessage={setCurrentMessage} onSubmit={handleSubmit} />
+        </div>
       </div>
     </div>
   );

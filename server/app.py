@@ -1,7 +1,7 @@
 from typing import TypedDict, Annotated, Optional
 from langgraph.graph import add_messages, StateGraph, END
 from langchain_openai import ChatOpenAI
-from langchain_core.messages import HumanMessage, AIMessageChunk, ToolMessage
+from langchain_core.messages import HumanMessage, AIMessageChunk, ToolMessage, SystemMessage
 from dotenv import load_dotenv
 from langchain_community.tools.tavily_search import TavilySearchResults
 from fastapi import FastAPI, Query
@@ -10,6 +10,7 @@ from fastapi.middleware.cors import CORSMiddleware
 import json
 from uuid import uuid4
 from langgraph.checkpoint.memory import MemorySaver
+from datetime import datetime
 
 load_dotenv()
 
@@ -118,9 +119,14 @@ async def generate_chat_responses(message: str, checkpoint_id: Optional[str] = N
             }
         }
         
-        # Initialize with first message
+        # Get current date for system context
+        current_date = datetime.now().strftime("%B %d, %Y")
+
+        # Initialize with system message containing current date and user message
+        system_message = SystemMessage(content=f"You are a helpful AI assistant. Today's date is {current_date}. When providing information, be aware of this current date and context.")
+
         events = graph.astream_events(
-            {"messages": [HumanMessage(content=message)]},
+            {"messages": [system_message, HumanMessage(content=message)]},
             version="v2",
             config=config
         )
