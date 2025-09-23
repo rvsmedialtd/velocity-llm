@@ -539,7 +539,7 @@ const Home = () => {
         </div>
 
         {/* Input Bar */}
-        <div className="bg-white border-t border-gray-200">
+        <div className="bg-white prompt-box border-t border-gray-200">
           <InputBar
             currentMessage={currentMessage}
             setCurrentMessage={setCurrentMessage}

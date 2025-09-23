@@ -162,12 +162,12 @@ const ChatHistoryFlyout: React.FC<ChatHistoryFlyoutProps> = ({
       {/* Flyout Panel */}
       <div
         ref={flyoutRef}
-        className={`fixed top-0 left-0 h-full bg-white shadow-2xl transition-transform duration-300 ease-out z-60 ${
+        className={`fixed top-0 left-0 h-full bg-white2 shadow-2xl transition-transform duration-300 ease-out z-60 ${
           isOpen ? 'translate-x-0' : '-translate-x-full'
         } w-full max-w-md sm:max-w-lg md:max-w-xl lg:max-w-2xl`}
       >
         {/* Header */}
-        <div className="bg-white border-b border-gray-200 px-6 py-4 sticky top-0 z-10">
+        <div className="bg-white2 border-b border-gray-200 px-6 py-4 sticky top-0 z-10">
           <div className="flex items-center justify-between mb-4">
             <div className="flex items-center space-x-3">
               <h2 className="text-xl font-bold text-gray-900">Recent Chats</h2>
