@@ -204,15 +204,30 @@ class UserDB:
 
     @staticmethod
     def get_user_by_id(user_id: int) -> Optional[Dict]:
-        """Get user by ID."""
+        """Get user by ID - checks both users and admins tables."""
         conn = get_db_connection()
         cursor = conn.cursor()
 
+        # First try users table
         cursor.execute('SELECT * FROM users WHERE id = ? AND is_active = 1', (user_id,))
         user = cursor.fetchone()
+
+        if user:
+            conn.close()
+            return dict(user)
+
+        # If not found in users, try admins table
+        cursor.execute('SELECT * FROM admins WHERE id = ? AND is_active = 1', (user_id,))
+        admin = cursor.fetchone()
         conn.close()
 
-        return dict(user) if user else None
+        if admin:
+            admin_dict = dict(admin)
+            # Add role field to match expected format
+            admin_dict['role'] = 'admin' if admin_dict.get('permissions') else 'admin'
+            return admin_dict
+
+        return None
 
     @staticmethod
     def update_last_login(user_id: int):

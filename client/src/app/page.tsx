@@ -6,6 +6,7 @@ import AuthModal from '@/components/AuthModal';
 import Sidebar from '@/components/Sidebar';
 import ChatHistoryFlyout from '@/components/ChatHistoryFlyout';
 import ThemeToggle from '@/components/ThemeToggle';
+import EducationalPlatform from '@/components/EducationalPlatform';
 import React, { useState, useEffect } from 'react';
 import Link from 'next/link';
 
@@ -34,6 +35,7 @@ const Home = () => {
   const [chatHistory, setChatHistory] = useState([]);
   const [currentConversationId, setCurrentConversationId] = useState(null);
   const [isChatHistoryOpen, setIsChatHistoryOpen] = useState(false);
+  const [viewMode, setViewMode] = useState<'chat' | 'education'>('chat');
 
   useEffect(() => {
     const token = localStorage.getItem('authToken');
@@ -180,6 +182,14 @@ const Home = () => {
   };
 
   const handleNewChat = () => {
+    setMessages([]);
+    setCheckpointId(null);
+    setCurrentConversationId(null);
+    setIsChatHistoryOpen(false);
+  };
+
+  const toggleEducation = () => {
+    setViewMode(viewMode === 'chat' ? 'education' : 'chat');
     setMessages([]);
     setCheckpointId(null);
     setCurrentConversationId(null);
@@ -412,6 +422,8 @@ const Home = () => {
         onShowAuth={() => setIsAuthModalOpen(true)}
         onLogout={handleLogout}
         chatHistoryCount={chatHistory.length}
+        viewMode={viewMode}
+        onToggleEducation={toggleEducation}
       />
 
       {/* Chat History Flyout */}
@@ -474,82 +486,110 @@ const Home = () => {
       </div>
 
       {/* Main Content Area */}
-      <div className="flex-1 flex flex-col md:ml-20 pt-16 md:pt-0">
-        {/* Messages Area */}
-        <div className="flex-1 overflow-y-auto">
-          {messages.length === 0 ? (
-            // Welcome Screen
-            <div className="flex flex-col items-center justify-center h-full px-6">
-              <div className="text-center max-w-2xl">
-                <div className="mb-8">
-                  <img
-                    src="https://velocity.idevelopment.site/uploads/shape_27_1_1d90ad6dd8.svg"
-                    alt="Velocity Logo"
-                    className="w-16 h-16 mx-auto mb-4 opacity-80"
-                  />
-                  <h2 className="text-3xl font-bold text-theme-primary mb-2">Welcome to Velocity 2.0</h2>
-                  <p className="text-theme-secondary text-lg">Ask me anything and I'll search the web to give you accurate, up-to-date answers.</p>
-                </div>
-
-                {isAuthenticated ? (
-                  <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mb-8">
-                    <div className="bg-theme-secondary p-4 rounded-lg border border-theme-primary hover:border-[#01953f] transition-colors cursor-pointer"
-                         onClick={() => setCurrentMessage("What's the latest news in AI?")}>
-                      <div className="text-[#01953f] mb-2">🤖</div>
-                      <h3 className="font-medium text-theme-primary mb-1">Latest AI News</h3>
-                      <p className="text-theme-secondary text-sm">Get the most recent developments in artificial intelligence</p>
-                    </div>
-
-                    <div className="bg-theme-secondary p-4 rounded-lg border border-theme-primary hover:border-[#01953f] transition-colors cursor-pointer"
-                         onClick={() => setCurrentMessage("Explain quantum computing")}>
-                      <div className="text-[#01953f] mb-2">⚛️</div>
-                      <h3 className="font-medium text-theme-primary mb-1">Explain Complex Topics</h3>
-                      <p className="text-theme-secondary text-sm">Break down complex subjects into understandable explanations</p>
-                    </div>
-
-                    <div className="bg-theme-secondary p-4 rounded-lg border border-theme-primary hover:border-[#01953f] transition-colors cursor-pointer"
-                         onClick={() => setCurrentMessage("Best restaurants in New York")}>
-                      <div className="text-[#01953f] mb-2">🍽️</div>
-                      <h3 className="font-medium text-theme-primary mb-1">Local Recommendations</h3>
-                      <p className="text-theme-secondary text-sm">Find the best places to eat, visit, or explore</p>
-                    </div>
-
-                    <div className="bg-theme-secondary p-4 rounded-lg border border-theme-primary hover:border-[#01953f] transition-colors cursor-pointer"
-                         onClick={() => setCurrentMessage("How to learn Python programming?")}>
-                      <div className="text-[#01953f] mb-2">💻</div>
-                      <h3 className="font-medium text-theme-primary mb-1">Learning Resources</h3>
-                      <p className="text-theme-secondary text-sm">Get guidance on learning new skills and topics</p>
-                    </div>
-                  </div>
-                ) : (
-                  <div className="text-center">
-                    <p className="text-theme-secondary mb-4">Please sign in to start chatting</p>
-                    <button
-                      onClick={() => setIsAuthModalOpen(true)}
-                      className="bg-[#01953f] hover:bg-[#01fb6a] hover:text-black text-white py-3 px-6 rounded-lg transition-all duration-200 font-medium"
-                    >
-                      Sign In to Get Started
-                    </button>
-                  </div>
-                )}
-              </div>
-            </div>
-          ) : (
-            <MessageArea messages={messages} />
-          )}
-        </div>
-
-        {/* Input Bar */}
-        <div className="bg-theme-primary prompt-box border-t border-theme-primary">
-          <InputBar
-            currentMessage={currentMessage}
-            setCurrentMessage={setCurrentMessage}
-            onSubmit={handleSubmit}
-            placeholder={isAuthenticated ? "Ask me anything..." : "Sign in to start chatting"}
-            disabled={!isAuthenticated}
+      {viewMode === 'education' ? (
+        isAuthenticated ? (
+          <EducationalPlatform
+            token={localStorage.getItem('authToken') || ''}
+            user={{
+              id: userData?.id || 0,
+              username: userData?.username || '',
+              email: userData?.email || '',
+              role: (userData?.role === 'admin' || userData?.role === 'super_admin') ? 'educator' : 'student'
+            }}
+            onLogout={handleLogout}
           />
+        ) : (
+          <div className="flex-1 flex items-center justify-center md:ml-20 pt-16 md:pt-0">
+            <div className="text-center max-w-md">
+              <h2 className="text-2xl font-bold text-theme-primary mb-4">Educational AI Platform</h2>
+              <p className="text-theme-secondary mb-6">Please sign in to access the Educational AI Clone Platform</p>
+              <button
+                onClick={() => setIsAuthModalOpen(true)}
+                className="bg-[#01953f] hover:bg-[#01fb6a] hover:text-black text-white py-3 px-6 rounded-lg transition-all duration-200 font-medium"
+              >
+                Sign In to Get Started
+              </button>
+            </div>
+          </div>
+        )
+      ) : (
+        <div className="flex-1 flex flex-col md:ml-20 pt-16 md:pt-0">
+          {/* Messages Area */}
+          <div className="flex-1 overflow-y-auto">
+            {messages.length === 0 ? (
+              // Welcome Screen
+              <div className="flex flex-col items-center justify-center h-full px-6">
+                <div className="text-center max-w-2xl">
+                  <div className="mb-8">
+                    <img
+                      src="https://velocity.idevelopment.site/uploads/shape_27_1_1d90ad6dd8.svg"
+                      alt="Velocity Logo"
+                      className="w-16 h-16 mx-auto mb-4 opacity-80"
+                    />
+                    <h2 className="text-3xl font-bold text-theme-primary mb-2">Welcome to Velocity 2.0</h2>
+                    <p className="text-theme-secondary text-lg">Ask me anything and I'll search the web to give you accurate, up-to-date answers.</p>
+                  </div>
+
+                  {isAuthenticated ? (
+                    <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mb-8">
+                      <div className="bg-theme-secondary p-4 rounded-lg border border-theme-primary hover:border-[#01953f] transition-colors cursor-pointer"
+                           onClick={() => setCurrentMessage("What's the latest news in AI?")}>
+                        <div className="text-[#01953f] mb-2">🤖</div>
+                        <h3 className="font-medium text-theme-primary mb-1">Latest AI News</h3>
+                        <p className="text-theme-secondary text-sm">Get the most recent developments in artificial intelligence</p>
+                      </div>
+
+                      <div className="bg-theme-secondary p-4 rounded-lg border border-theme-primary hover:border-[#01953f] transition-colors cursor-pointer"
+                           onClick={() => setCurrentMessage("Explain quantum computing")}>
+                        <div className="text-[#01953f] mb-2">⚛️</div>
+                        <h3 className="font-medium text-theme-primary mb-1">Explain Complex Topics</h3>
+                        <p className="text-theme-secondary text-sm">Break down complex subjects into understandable explanations</p>
+                      </div>
+
+                      <div className="bg-theme-secondary p-4 rounded-lg border border-theme-primary hover:border-[#01953f] transition-colors cursor-pointer"
+                           onClick={() => setCurrentMessage("Best restaurants in New York")}>
+                        <div className="text-[#01953f] mb-2">🍽️</div>
+                        <h3 className="font-medium text-theme-primary mb-1">Local Recommendations</h3>
+                        <p className="text-theme-secondary text-sm">Find the best places to eat, visit, or explore</p>
+                      </div>
+
+                      <div className="bg-theme-secondary p-4 rounded-lg border border-theme-primary hover:border-[#01953f] transition-colors cursor-pointer"
+                           onClick={() => setCurrentMessage("How to learn Python programming?")}>
+                        <div className="text-[#01953f] mb-2">💻</div>
+                        <h3 className="font-medium text-theme-primary mb-1">Learning Resources</h3>
+                        <p className="text-theme-secondary text-sm">Get guidance on learning new skills and topics</p>
+                      </div>
+                    </div>
+                  ) : (
+                    <div className="text-center">
+                      <p className="text-theme-secondary mb-4">Please sign in to start chatting</p>
+                      <button
+                        onClick={() => setIsAuthModalOpen(true)}
+                        className="bg-[#01953f] hover:bg-[#01fb6a] hover:text-black text-white py-3 px-6 rounded-lg transition-all duration-200 font-medium"
+                      >
+                        Sign In to Get Started
+                      </button>
+                    </div>
+                  )}
+                </div>
+              </div>
+            ) : (
+              <MessageArea messages={messages} />
+            )}
+          </div>
+
+          {/* Input Bar */}
+          <div className="bg-theme-primary prompt-box border-t border-theme-primary">
+            <InputBar
+              currentMessage={currentMessage}
+              setCurrentMessage={setCurrentMessage}
+              onSubmit={handleSubmit}
+              placeholder={isAuthenticated ? "Ask me anything..." : "Sign in to start chatting"}
+              disabled={!isAuthenticated}
+            />
+          </div>
         </div>
-      </div>
+      )}
 
       {/* Auth Modal */}
       <AuthModal

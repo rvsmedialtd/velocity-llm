@@ -380,12 +380,16 @@ app = FastAPI()
 # Add CORS middleware with settings that match frontend requirements
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=["*"],  
+    allow_origins=["*"],
     allow_credentials=True,
-    allow_methods=["*"],  
-    allow_headers=["*"], 
-    expose_headers=["Content-Type"], 
+    allow_methods=["*"],
+    allow_headers=["*"],
+    expose_headers=["Content-Type"],
 )
+
+# Include educational platform router
+from education_api import education_router
+app.include_router(education_router)
 
 def serialise_ai_message_chunk(chunk): 
     if(isinstance(chunk, AIMessageChunk)):
