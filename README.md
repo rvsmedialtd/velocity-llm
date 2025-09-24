@@ -1,6 +1,6 @@
-# Velocity 2.0
+# Perplexity 2.0
 
-A modern, responsive AI chat interface with integrated web search functionality. Velocity 2.0 provides a clean UI similar to Perplexity.ai, combining conversational AI with real-time search capabilities
+A modern, responsive AI chat interface with integrated web search functionality. Perplexity 2.0 provides a clean UI similar to Perplexity.ai, combining conversational AI with real-time search capabilities
 
 ## ✨ Features
 
@@ -12,7 +12,7 @@ A modern, responsive AI chat interface with integrated web search functionality.
 
 ## 🏗️ Architecture
 
-Velocity 2.0 follows a client-server architecture:
+Perplexity 2.0 follows a client-server architecture:
 
 ### Client (Next.js + React)
 - Modern React application built with Next.js

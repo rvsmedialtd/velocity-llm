@@ -14,8 +14,6 @@ import docx
 from typing import List, Dict, Any, Optional
 import uuid
 import tempfile
-import json
-import shutil
 
 
 class VectorDatabase:
@@ -190,21 +188,10 @@ def get_document_processor():
     return _document_processor
 
 
-def process_uploaded_file(file_content: bytes, filename: str, uploaded_by: int = None) -> Dict[str, Any]:
-    """Process an uploaded file and add to vector database with user ownership."""
+def process_uploaded_file(file_content: bytes, filename: str) -> Dict[str, Any]:
+    """Process an uploaded file and add to vector database."""
     try:
-        from database import DocumentDB
-
-        # Create user-specific directory
-        user_dir = f"./uploads/admin_{uploaded_by}" if uploaded_by else "./uploads"
-        os.makedirs(user_dir, exist_ok=True)
-
-        # Save file permanently in user directory
-        file_path = os.path.join(user_dir, filename)
-        with open(file_path, 'wb') as f:
-            f.write(file_content)
-
-        # Save file temporarily for processing
+        # Save file temporarily
         with tempfile.NamedTemporaryFile(delete=False, suffix=f".{filename.split('.')[-1]}") as temp_file:
             temp_file.write(file_content)
             temp_file_path = temp_file.name
@@ -213,30 +200,11 @@ def process_uploaded_file(file_content: bytes, filename: str, uploaded_by: int =
             # Process the file
             documents = get_document_processor().process_file(temp_file_path, filename)
 
-            # Add each chunk to vector database with user metadata
+            # Add each chunk to vector database
             document_ids = []
             for doc in documents:
-                # Add user_id to metadata
-                if uploaded_by:
-                    doc['metadata']['uploaded_by'] = uploaded_by
                 doc_id = get_vector_db().add_document(doc['content'], doc['metadata'])
                 document_ids.append(doc_id)
-
-            # Store document record in database
-            if uploaded_by:
-                file_size = len(file_content)
-                file_type = filename.split('.')[-1].lower()
-                chroma_ids = json.dumps(document_ids)
-
-                DocumentDB.create_document(
-                    filename=filename,
-                    file_type=file_type,
-                    uploaded_by=uploaded_by,
-                    file_path=file_path,
-                    file_size=file_size,
-                    chunks_count=len(document_ids),
-                    chroma_document_ids=chroma_ids
-                )
 
             return {
                 'success': True,
@@ -294,104 +262,24 @@ def delete_document_by_filename(filename: str) -> Dict[str, Any]:
 def list_all_documents() -> List[Dict[str, Any]]:
     """List all documents grouped by filename."""
     try:
-        from database import DocumentDB
-        return DocumentDB.get_all_documents()
+        all_docs = get_vector_db().list_documents()
+
+        # Group by filename
+        grouped_docs = {}
+        for doc in all_docs:
+            filename = doc['metadata'].get('filename', 'Unknown')
+            if filename not in grouped_docs:
+                grouped_docs[filename] = {
+                    'filename': filename,
+                    'file_type': doc['metadata'].get('file_type', 'unknown'),
+                    'total_chunks': 0,
+                    'document_ids': []
+                }
+            grouped_docs[filename]['total_chunks'] += 1
+            grouped_docs[filename]['document_ids'].append(doc['id'])
+
+        return list(grouped_docs.values())
+
     except Exception as e:
         print(f"Error listing documents: {e}")
         return []
-
-
-def list_user_documents(user_id: int) -> List[Dict[str, Any]]:
-    """List documents for a specific user."""
-    try:
-        from database import DocumentDB
-        return DocumentDB.get_user_documents(user_id)
-    except Exception as e:
-        print(f"Error listing user documents: {e}")
-        return []
-
-
-def delete_user_document(filename: str, user_id: int) -> Dict[str, Any]:
-    """Delete a document if owned by user."""
-    try:
-        from database import DocumentDB
-
-        # Verify ownership
-        document = DocumentDB.get_document_by_filename(filename, user_id)
-        if not document:
-            return {'success': False, 'error': 'Document not found or access denied'}
-
-        # Delete from ChromaDB
-        if document.get('chroma_document_ids'):
-            chroma_ids = json.loads(document['chroma_document_ids'])
-            deleted_count = 0
-            for doc_id in chroma_ids:
-                if get_vector_db().delete_document(doc_id):
-                    deleted_count += 1
-
-        # Delete file from filesystem
-        if document.get('file_path') and os.path.exists(document['file_path']):
-            os.remove(document['file_path'])
-
-        # Delete from database
-        success = DocumentDB.delete_document(filename, user_id)
-
-        return {
-            'success': success,
-            'deleted_chunks': deleted_count if 'deleted_count' in locals() else 0
-        }
-    except Exception as e:
-        return {'success': False, 'error': str(e)}
-
-
-def get_user_document_content(filename: str, user_id: int) -> Dict[str, Any]:
-    """Get document content for viewing if owned by user."""
-    try:
-        from database import DocumentDB
-
-        # Verify ownership
-        document = DocumentDB.get_document_by_filename(filename, user_id)
-        if not document:
-            return {'success': False, 'error': 'Document not found or access denied'}
-
-        file_path = document.get('file_path')
-        if not file_path or not os.path.exists(file_path):
-            return {'success': False, 'error': 'File not found on disk'}
-
-        file_type = document.get('file_type', '').lower()
-
-        # Read file content based on type
-        if file_type == 'pdf':
-            # For PDF, we'll return metadata and let frontend handle PDF viewer
-            with open(file_path, 'rb') as f:
-                content = f.read()
-            return {
-                'success': True,
-                'file_type': file_type,
-                'content': content.hex(),  # Convert to hex for JSON transport
-                'metadata': document
-            }
-        elif file_type in ['txt', 'text']:
-            with open(file_path, 'r', encoding='utf-8') as f:
-                content = f.read()
-            return {
-                'success': True,
-                'file_type': file_type,
-                'content': content,
-                'metadata': document
-            }
-        elif file_type in ['docx', 'doc']:
-            # Extract text from DOCX for viewing
-            doc = docx.Document(file_path)
-            content = '\n'.join([paragraph.text for paragraph in doc.paragraphs])
-            return {
-                'success': True,
-                'file_type': file_type,
-                'content': content,
-                'metadata': document
-            }
-        else:
-            return {'success': False, 'error': f'Unsupported file type: {file_type}'}
-
-    except Exception as e:
-        return {'success': False, 'error': str(e)}

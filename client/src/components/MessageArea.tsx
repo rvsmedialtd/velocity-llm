@@ -28,11 +28,11 @@ const PremiumTypingAnimation = () => {
     return (
         <div className="flex items-center">
             <div className="flex items-center space-x-1.5">
-                <div className="w-1.5 h-1.5 bg-gray-400/70 rounded-full animate-pulse"
+                <div className="w-1.5 h-1.5 bg-theme-tertiary opacity-70 rounded-full animate-pulse"
                     style={{ animationDuration: "1s", animationDelay: "0ms" }}></div>
-                <div className="w-1.5 h-1.5 bg-gray-400/70 rounded-full animate-pulse"
+                <div className="w-1.5 h-1.5 bg-theme-tertiary opacity-70 rounded-full animate-pulse"
                     style={{ animationDuration: "1s", animationDelay: "300ms" }}></div>
-                <div className="w-1.5 h-1.5 bg-gray-400/70 rounded-full animate-pulse"
+                <div className="w-1.5 h-1.5 bg-theme-tertiary opacity-70 rounded-full animate-pulse"
                     style={{ animationDuration: "1s", animationDelay: "600ms" }}></div>
             </div>
         </div>
@@ -45,7 +45,7 @@ const SearchStages = ({ searchInfo }: SearchStagesProps) => {
     return (
         <div className="mb-3 mt-1 relative pl-4">
             {/* Search Process UI */}
-            <div className="flex flex-col space-y-4 text-sm text-gray-700">
+            <div className="flex flex-col space-y-4 text-sm text-theme-secondary">
                 {/* Searching Stage */}
                 {searchInfo.stages.includes('searching') && (
                     <div className="relative">
@@ -58,12 +58,12 @@ const SearchStages = ({ searchInfo }: SearchStagesProps) => {
                         )}
 
                         <div className="flex flex-col">
-                            <span className="font-medium mb-2 ml-2">Searching the web</span>
+                            <span className="font-medium mb-2 ml-2 text-theme-primary">Searching the web</span>
 
                             {/* Search Query in box styling */}
                             <div className="flex flex-wrap gap-2 pl-2 mt-1">
-                                <div className="bg-gray-100 text-xs px-3 py-1.5 rounded border border-gray-200 inline-flex items-center">
-                                    <svg className="w-3 h-3 mr-1.5 text-gray-500" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
+                                <div className="bg-theme-tertiary text-xs px-3 py-1.5 rounded border border-theme-primary inline-flex items-center">
+                                    <svg className="w-3 h-3 mr-1.5 text-theme-tertiary" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
                                         <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z"></path>
                                     </svg>
                                     {searchInfo.query}
@@ -80,7 +80,7 @@ const SearchStages = ({ searchInfo }: SearchStagesProps) => {
                         <div className="absolute -left-3 top-1 w-2.5 h-2.5 bg-[#01fb6a] rounded-full z-10 shadow-sm"></div>
 
                         <div className="flex flex-col">
-                            <span className="font-medium mb-2 ml-2">Reading</span>
+                            <span className="font-medium mb-2 ml-2 text-theme-primary">Reading</span>
 
                             {/* Search Results */}
                             {searchInfo.urls && searchInfo.urls.length > 0 && (
@@ -88,12 +88,12 @@ const SearchStages = ({ searchInfo }: SearchStagesProps) => {
                                     <div className="flex flex-wrap gap-2">
                                         {Array.isArray(searchInfo.urls) ? (
                                             searchInfo.urls.map((url, index) => (
-                                                <div key={index} className="bg-gray-100 text-xs px-3 py-1.5 rounded border border-gray-200 truncate max-w-[200px] transition-all duration-200 hover:bg-gray-50">
+                                                <div key={index} className="bg-theme-tertiary text-xs px-3 py-1.5 rounded border border-theme-primary truncate max-w-[200px] transition-all duration-200 hover:bg-theme-secondary">
                                                     {typeof url === 'string' ? url : JSON.stringify(url).substring(0, 30)}
                                                 </div>
                                             ))
                                         ) : (
-                                            <div className="bg-gray-100 text-xs px-3 py-1.5 rounded border border-gray-200 truncate max-w-[200px] transition-all duration-200 hover:bg-gray-50">
+                                            <div className="bg-theme-tertiary text-xs px-3 py-1.5 rounded border border-theme-primary truncate max-w-[200px] transition-all duration-200 hover:bg-theme-secondary">
                                                 {typeof searchInfo.urls === 'string' ? searchInfo.urls.substring(0, 30) : JSON.stringify(searchInfo.urls).substring(0, 30)}
                                             </div>
                                         )}
@@ -109,7 +109,7 @@ const SearchStages = ({ searchInfo }: SearchStagesProps) => {
                     <div className="relative">
                         {/* Green dot with subtle glow effect */}
                         <div className="absolute -left-3 top-1 w-2.5 h-2.5 bg-[#01fb6a] rounded-full z-10 shadow-sm"></div>
-                        <span className="font-medium pl-2">Writing answer</span>
+                        <span className="font-medium pl-2 text-theme-primary">Writing answer</span>
                     </div>
                 )}
 
@@ -118,7 +118,7 @@ const SearchStages = ({ searchInfo }: SearchStagesProps) => {
                     <div className="relative">
                         {/* Red dot over the vertical line */}
                         <div className="absolute -left-3 top-1 w-2.5 h-2.5 bg-red-400 rounded-full z-10 shadow-sm"></div>
-                        <span className="font-medium">Search error</span>
+                        <span className="font-medium text-theme-primary">Search error</span>
                         <div className="pl-4 text-xs text-red-500 mt-1">
                             {searchInfo.error || "An error occurred during search."}
                         </div>
@@ -233,7 +233,7 @@ const MessageArea = ({ messages }: MessageAreaProps) => {
     };
 
     return (
-        <div className="flex-grow overflow-y-auto bg-white" style={{ minHeight: 0 }}>
+        <div className="flex-grow overflow-y-auto" style={{ minHeight: 0 }}>
             <div className="max-w-4xl mx-auto p-6">
                 {messages.map((message) => (
                     <div key={message.id} className={`mb-8`}>
@@ -263,18 +263,18 @@ const MessageArea = ({ messages }: MessageAreaProps) => {
                                     {/* Message Content */}
                                     <div className="prose prose-gray max-w-none">
                                         {message.isLoading ? (
-                                            <div className="flex items-center space-x-2 text-gray-500">
+                                            <div className="flex items-center space-x-2 text-theme-secondary">
                                                 <PremiumTypingAnimation />
                                                 <span className="text-sm">Thinking...</span>
                                             </div>
                                         ) : (
-                                            <div className="text-gray-800 leading-relaxed">
+                                            <div className="text-theme-primary leading-relaxed">
                                                 {message.content ? (
                                                     <div className="max-w-none leading-relaxed">
                                                         {parseAndRenderContent(message.content)}
                                                     </div>
                                                 ) : (
-                                                    <span className="text-gray-400 text-sm italic">Waiting for response...</span>
+                                                    <span className="text-theme-tertiary text-sm italic">Waiting for response...</span>
                                                 )}
                                             </div>
                                         )}
