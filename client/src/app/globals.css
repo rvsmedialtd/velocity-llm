@@ -1,8 +1,24 @@
 @import "tailwindcss";
 
 :root {
+  /* Light theme variables */
   --background: #ffffff;
   --foreground: #171717;
+
+  /* Extended theme variables */
+  --bg-primary: #ffffff;
+  --bg-secondary: #f9fafb;
+  --bg-tertiary: #f3f4f6;
+  --text-primary: #111827;
+  --text-secondary: #6b7280;
+  --text-tertiary: #9ca3af;
+  --border-primary: #e5e7eb;
+  --border-secondary: #d1d5db;
+  --shadow-sm: rgba(0, 0, 0, 0.05);
+  --shadow-md: rgba(0, 0, 0, 0.1);
+  --shadow-lg: rgba(0, 0, 0, 0.15);
+  --accent-primary: #01953f;
+  --accent-hover: #01fb6a;
 }
 
 @theme inline {
@@ -12,17 +28,84 @@
   --font-mono: var(--font-geist-mono);
 }
 
+/* Dark theme variables */
+[data-theme="dark"] {
+  --background: #0a0a0a;
+  --foreground: #ededed;
+
+  --bg-primary: #111827;
+  --bg-secondary: #1f2937;
+  --bg-tertiary: #374151;
+  --text-primary: #f9fafb;
+  --text-secondary: #d1d5db;
+  --text-tertiary: #9ca3af;
+  --border-primary: #374151;
+  --border-secondary: #4b5563;
+  --shadow-sm: rgba(0, 0, 0, 0.3);
+  --shadow-md: rgba(0, 0, 0, 0.4);
+  --shadow-lg: rgba(0, 0, 0, 0.5);
+  --accent-primary: #01953f;
+  --accent-hover: #01fb6a;
+}
+
+/* Legacy support for system preference */
 @media (prefers-color-scheme: dark) {
-  :root {
+  :root:not([data-theme]) {
     --background: #0a0a0a;
     --foreground: #ededed;
   }
 }
 
 body {
-  background: var(--background);
-  color: var(--foreground);
+  background: var(--bg-primary);
+  color: var(--text-primary);
   font-family: Arial, Helvetica, sans-serif;
+  transition: background-color 0.3s ease, color 0.3s ease;
+}
+
+/* Theme-aware utility classes */
+.bg-theme-primary {
+  background-color: var(--bg-primary);
+}
+
+.bg-theme-secondary {
+  background-color: var(--bg-secondary);
+}
+
+.bg-theme-tertiary {
+  background-color: var(--bg-tertiary);
+}
+
+.text-theme-primary {
+  color: var(--text-primary);
+}
+
+.text-theme-secondary {
+  color: var(--text-secondary);
+}
+
+.text-theme-tertiary {
+  color: var(--text-tertiary);
+}
+
+.border-theme-primary {
+  border-color: var(--border-primary);
+}
+
+.border-theme-secondary {
+  border-color: var(--border-secondary);
+}
+
+.shadow-theme-sm {
+  box-shadow: 0 1px 2px 0 var(--shadow-sm);
+}
+
+.shadow-theme-md {
+  box-shadow: 0 4px 6px -1px var(--shadow-md), 0 2px 4px -1px var(--shadow-sm);
+}
+
+.shadow-theme-lg {
+  box-shadow: 0 10px 15px -3px var(--shadow-lg), 0 4px 6px -2px var(--shadow-md);
 }
 
 /* Line clamp utility for multi-line text truncation */

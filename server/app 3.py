@@ -1,6 +1,5 @@
 from typing import TypedDict, Annotated, Optional, List, Dict, Any
 from langgraph.graph import add_messages, StateGraph, END
-# OpenAI imports
 from langchain_openai import ChatOpenAI
 from langchain_core.messages import HumanMessage, AIMessageChunk, ToolMessage, SystemMessage
 from dotenv import load_dotenv
@@ -20,9 +19,7 @@ from auth import (
     get_current_super_admin, verify_super_admin_token, create_access_token,
     get_password_hash, validate_username, validate_email, validate_password
 )
-from database import UserDB, AdminDB, ChatSessionDB, AdminInviteDB, MCPConnectionDB, MCPToolDB, ToolPermissionDB
-import aiohttp
-from langchain_core.tools import tool
+from database import UserDB, AdminDB, ChatSessionDB, AdminInviteDB
 from pydantic import BaseModel
 
 load_dotenv()
@@ -81,138 +78,19 @@ class State(TypedDict):
 
 search_tool = TavilySearchResults(
     max_results=4,
-    description="Search the web for general information. DO NOT use this for Hyva store/website/theme product queries - use magento_product_search instead."
 )
 
-@tool
-async def magento_product_search(query: str) -> str:
-    """
-    IMPORTANT: Use this tool EXCLUSIVELY when users ask for products from Hyva store, Hyva website, Hyva theme, or Magento store.
-    This tool searches the Hyva Magento e-commerce store for products like jackets, bags, tops, watches, bottoms, etc.
-    Keywords that should trigger this tool: 'hyva', 'magento', 'hyva store', 'hyva website', 'hyva theme', 'products from hyva'
-    DO NOT use web search for Hyva/Magento product queries - always use this tool instead.
-    """
+tools = [search_tool]
 
-    try:
-        # Get MCP connection for Magento
-        connections = MCPConnectionDB.get_all_connections()
-
-        # Find Hyva/Magento connection
-        magento_connection = None
-        for conn in connections:
-            if "hyva" in conn.get('name', '').lower() or "magento" in conn.get('name', '').lower():
-                magento_connection = conn
-                break
-
-        if not magento_connection:
-            return "❌ Magento store connection not found. Please check MCP configuration."
-
-        # Parse connection config and credentials
-        config = json.loads(magento_connection.get('config', '{}'))
-        credentials = json.loads(magento_connection.get('credentials', '{}'))
-
-        base_url = config.get('base_url', '').rstrip('/')
-        api_token = credentials.get('api_token', '')
-
-        if not base_url or not api_token:
-            return "❌ Missing API configuration. Please check base URL and API token."
-
-        # Extract search terms from query
-        search_term = query.lower()
-
-        # Remove common phrases to get product keywords
-        remove_phrases = ['show me', 'find', 'search for', 'from hyva', 'website', 'store', 'products']
-        for phrase in remove_phrases:
-            search_term = search_term.replace(phrase, '').strip()
-
-        # API endpoint for product search
-        endpoint = "/products"
-
-        # Build search parameters
-        params = {
-            "searchCriteria[filterGroups][0][filters][0][field]": "name",
-            "searchCriteria[filterGroups][0][filters][0][value]": f"%{search_term}%",
-            "searchCriteria[filterGroups][0][filters][0][conditionType]": "like",
-            "searchCriteria[pageSize]": "10"
-        }
-
-        url = f"{base_url}{endpoint}"
-        headers = {
-            "Authorization": f"Bearer {api_token}",
-            "Content-Type": "application/json"
-        }
-
-        # Debug logging
-        print(f"[DEBUG] Making Magento API request:")
-        print(f"  URL: {url}")
-        print(f"  Params: {params}")
-        print(f"  Headers: {headers}")
-
-        # Make the API request directly
-        async with aiohttp.ClientSession() as session:
-            async with session.get(url, params=params, headers=headers, timeout=30) as response:
-                print(f"[DEBUG] Magento API Response Status: {response.status}")
-                if response.status == 200:
-                    data = await response.json()
-
-                    # Parse product data
-                    if 'items' in data and len(data['items']) > 0:
-                        products = []
-                        for item in data['items'][:8]:  # Show up to 8 products
-                            name = item.get('name', 'Unknown Product')
-                            sku = item.get('sku', 'N/A')
-
-                            # Get price from the price field directly
-                            price = item.get('price', 'N/A')
-                            if price != 'N/A':
-                                price = f"${price}"
-
-                            # Get product URL from custom attributes
-                            product_url = None
-                            if 'custom_attributes' in item:
-                                for attr in item['custom_attributes']:
-                                    if attr.get('attribute_code') == 'url_key':
-                                        url_key = attr.get('value', '')
-                                        if url_key:
-                                            # Construct full product URL
-                                            base_domain = base_url.replace('/rest/V1', '')
-                                            product_url = f"{base_domain}/{url_key}.html"
-                                        break
-
-                            # Format product entry with URL if available
-                            if product_url:
-                                products.append(f"• **{name}** (SKU: {sku}) - Price: {price}\n  🔗 [View Product]({product_url})")
-                            else:
-                                products.append(f"• **{name}** (SKU: {sku}) - Price: {price}")
-
-                        total_count = data.get('total_count', len(data['items']))
-                        result_text = f"🛍️ Found {len(products)} products matching '{search_term}' from {magento_connection.get('name', 'Hyva Store')}"
-                        if total_count > len(products):
-                            result_text += f" (showing {len(products)} of {total_count} total results)"
-                        result_text += ":\n\n" + "\n\n".join(products)
-
-                        return result_text
-                    else:
-                        return f"❌ No products found matching '{search_term}' in the Hyva store. Try searching for different terms like bags, tops, jackets, watches, etc."
-                else:
-                    error_text = await response.text()
-                    print(f"[DEBUG] Magento API Error Response: {error_text}")
-                    return f"❌ API Error ({response.status}): Failed to fetch products from Magento store. {error_text[:200]}"
-
-    except Exception as e:
-        return f"❌ Error searching products: {str(e)}"
-
-tools = [search_tool, magento_product_search]
-
-# OpenAI LLM setup
 llm = ChatOpenAI(model="gpt-4o")
+
 llm_with_tools = llm.bind_tools(tools=tools)
 
-
 async def model(state: State):
-    messages = state["messages"]
-    response = llm_with_tools.invoke(messages)
-    return {"messages": [response]}
+    result = await llm_with_tools.ainvoke(state["messages"])
+    return {
+        "messages": [result], 
+    }
 
 async def tools_router(state: State):
     last_message = state["messages"][-1]
@@ -236,48 +114,18 @@ async def tool_node(state):
         tool_args = tool_call["args"]
         tool_id = tool_call["id"]
         
-        try:
-            # Handle the search tool
-            if tool_name == "tavily_search_results_json":
-                # Execute the search tool with the provided arguments
-                search_results = await search_tool.ainvoke(tool_args)
-
-                # Create a ToolMessage for this result
-                tool_message = ToolMessage(
-                    content=str(search_results),
-                    tool_call_id=tool_id,
-                    name=tool_name
-                )
-                tool_messages.append(tool_message)
-
-            # Handle the Magento product search tool
-            elif tool_name == "magento_product_search":
-                # Execute the Magento product search
-                search_results = await magento_product_search.ainvoke(tool_args)
-
-                # Create a ToolMessage for this result
-                tool_message = ToolMessage(
-                    content=str(search_results),
-                    tool_call_id=tool_id,
-                    name=tool_name
-                )
-                tool_messages.append(tool_message)
-            else:
-                # Handle unknown tools
-                tool_message = ToolMessage(
-                    content=f"Unknown tool: {tool_name}",
-                    tool_call_id=tool_id,
-                    name=tool_name
-                )
-                tool_messages.append(tool_message)
-
-        except Exception as e:
-            # Create error message for failed tool execution
+        # Handle the search tool
+        if tool_name == "tavily_search_results_json":
+            # Execute the search tool with the provided arguments
+            search_results = await search_tool.ainvoke(tool_args)
+            
+            # Create a ToolMessage for this result
             tool_message = ToolMessage(
-                content=f"Tool execution failed: {str(e)}",
+                content=str(search_results),
                 tool_call_id=tool_id,
                 name=tool_name
             )
+            
             tool_messages.append(tool_message)
     
     # Add the tool messages to the state
@@ -351,8 +199,12 @@ async def enhanced_model(state: State):
         )
         messages.insert(-1, context_message)  # Insert before the last user message
 
-    response = llm_with_tools.invoke(messages)
-    return {"messages": [response]}
+    # Invoke the LLM
+    result = await llm_with_tools.ainvoke(messages)
+
+    return {
+        "messages": [result]
+    }
 
 async def enhanced_tools_router(state: State):
     """Enhanced router that considers search strategy."""
@@ -674,8 +526,8 @@ async def upload_document(
         # Read file content
         content = await file.read()
 
-        # Process the file with admin user ID for isolation
-        result = process_uploaded_file(content, file.filename, uploaded_by=current_user["id"])
+        # Process the file
+        result = process_uploaded_file(content, file.filename)
 
         return result
     except Exception as e:
@@ -683,57 +535,8 @@ async def upload_document(
 
 @app.get("/admin/documents")
 async def list_documents(current_user: Dict[str, Any] = Depends(get_current_admin)):
-    """List uploaded documents for current admin only."""
-    from rag_utils import list_user_documents
-    return {"documents": list_user_documents(current_user["id"])}
-
-@app.get("/admin/documents/{filename}/view")
-async def view_document(
-    filename: str,
-    current_user: Dict[str, Any] = Depends(get_current_admin)
-):
-    """View document content (admin only)."""
-    import os
-    from fastapi.responses import PlainTextResponse
-
-    # Check if file exists in admin's directory
-    user_dir = f"./uploads/admin_{current_user['id']}"
-    file_path = os.path.join(user_dir, filename)
-
-    if not os.path.exists(file_path):
-        raise HTTPException(status_code=404, detail="Document not found")
-
-    try:
-        with open(file_path, 'r', encoding='utf-8') as f:
-            content = f.read()
-        return PlainTextResponse(content)
-    except UnicodeDecodeError:
-        # If it's a binary file, return info instead of content
-        return {"message": "Binary file - cannot display content", "filename": filename}
-    except Exception as e:
-        raise HTTPException(status_code=500, detail=f"Error reading file: {str(e)}")
-
-@app.get("/admin/documents/{filename}/download")
-async def download_document(
-    filename: str,
-    current_user: Dict[str, Any] = Depends(get_current_admin)
-):
-    """Download document file (admin only)."""
-    import os
-    from fastapi.responses import FileResponse
-
-    # Check if file exists in admin's directory
-    user_dir = f"./uploads/admin_{current_user['id']}"
-    file_path = os.path.join(user_dir, filename)
-
-    if not os.path.exists(file_path):
-        raise HTTPException(status_code=404, detail="Document not found")
-
-    return FileResponse(
-        path=file_path,
-        filename=filename,
-        media_type='application/octet-stream'
-    )
+    """List all uploaded documents (admin only)."""
+    return {"documents": list_all_documents()}
 
 @app.delete("/admin/documents/{filename}")
 async def delete_document(
@@ -741,8 +544,7 @@ async def delete_document(
     current_user: Dict[str, Any] = Depends(get_current_admin)
 ):
     """Delete a document by filename (admin only)."""
-    from rag_utils import delete_user_document
-    result = delete_user_document(filename, current_user["id"])
+    result = delete_document_by_filename(filename)
     if result["success"]:
         return result
     else:
@@ -915,49 +717,5 @@ async def register_admin_with_invite(admin_data: AdminRegister):
             "permissions": invite['permissions'].split(",") if invite['permissions'] else []
         }
     }
-
-# MCP Admin Management Endpoints
-@app.get("/admin/mcp/tools")
-async def get_admin_mcp_tools(current_admin: Dict[str, Any] = Depends(get_current_admin)):
-    """Get MCP tools for admin (only their own connections)."""
-    try:
-        tools = MCPToolDB.get_all_tools()
-        return {"tools": tools}
-    except Exception as e:
-        raise HTTPException(status_code=500, detail=f"Error fetching MCP tools: {str(e)}")
-
-@app.get("/admin/mcp/connections")
-async def get_admin_mcp_connections(current_admin: Dict[str, Any] = Depends(get_current_admin)):
-    """Get MCP connections for admin (only their own connections)."""
-    try:
-        # Get connections created by this admin
-        connections = MCPConnectionDB.get_connections_by_user(current_admin["id"])
-        return {"connections": connections}
-    except Exception as e:
-        raise HTTPException(status_code=500, detail=f"Error fetching MCP connections: {str(e)}")
-
-@app.post("/admin/mcp/connections")
-async def create_admin_mcp_connection(
-    connection_data: Dict[str, Any],
-    current_admin: Dict[str, Any] = Depends(get_current_admin)
-):
-    """Create a new MCP connection (admin scoped)."""
-    try:
-        # Create connection with admin as creator
-        connection_id = MCPConnectionDB.create_connection(
-            tool_id=connection_data["tool_id"],
-            name=connection_data["name"],
-            endpoint=connection_data.get("endpoint", ""),
-            config=json.dumps(connection_data.get("config", {})),
-            credentials=json.dumps(connection_data.get("credentials", {})),
-            created_by=current_admin["id"]
-        )
-
-        if connection_id:
-            return {"message": "Connection created successfully", "connection_id": connection_id}
-        else:
-            raise HTTPException(status_code=500, detail="Failed to create connection")
-    except Exception as e:
-        raise HTTPException(status_code=500, detail=f"Error creating MCP connection: {str(e)}")
 
 # SSE - server-sent events 

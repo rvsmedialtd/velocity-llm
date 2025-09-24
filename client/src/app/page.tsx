@@ -5,6 +5,7 @@ import MessageArea from '@/components/MessageArea';
 import AuthModal from '@/components/AuthModal';
 import Sidebar from '@/components/Sidebar';
 import ChatHistoryFlyout from '@/components/ChatHistoryFlyout';
+import ThemeToggle from '@/components/ThemeToggle';
 import React, { useState, useEffect } from 'react';
 import Link from 'next/link';
 
@@ -401,7 +402,7 @@ const Home = () => {
   };
 
   return (
-    <div className="flex h-screen bg-gray-50">
+    <div className="flex h-screen bg-theme-secondary">
       {/* Sidebar */}
       <Sidebar
         isAuthenticated={isAuthenticated}
@@ -425,7 +426,7 @@ const Home = () => {
       />
 
       {/* Mobile Header */}
-      <div className="md:hidden bg-white border-b border-gray-200 p-4 fixed top-0 left-0 right-0 z-30">
+      <div className="md:hidden bg-theme-primary border-b border-theme-primary p-4 fixed top-0 left-0 right-0 z-30">
         <div className="flex items-center justify-between">
           <div className="flex items-center space-x-3">
             <img
@@ -439,7 +440,7 @@ const Home = () => {
             {isAuthenticated && (
               <button
                 onClick={() => setIsChatHistoryOpen(true)}
-                className="p-2 rounded-lg text-gray-600 hover:bg-gray-100 transition-colors relative"
+                className="p-2 rounded-lg text-theme-secondary hover:bg-theme-secondary transition-colors relative"
               >
                 <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                   <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M8 12h.01M12 12h.01M16 12h.01M21 12c0 4.418-4.03 8-9 8a9.863 9.863 0 01-4.255-.949L3 20l1.395-3.72C3.512 15.042 3 13.574 3 12c0-4.418 4.03-8 9-8s9 3.582 9 8z"></path>
@@ -486,43 +487,43 @@ const Home = () => {
                     alt="Velocity Logo"
                     className="w-16 h-16 mx-auto mb-4 opacity-80"
                   />
-                  <h2 className="text-3xl font-bold text-gray-800 mb-2">Welcome to Velocity</h2>
-                  <p className="text-gray-600 text-lg">Ask me anything and I'll search the web to give you accurate, up-to-date answers.</p>
+                  <h2 className="text-3xl font-bold text-theme-primary mb-2">Welcome to Velocity 2.0</h2>
+                  <p className="text-theme-secondary text-lg">Ask me anything and I'll search the web to give you accurate, up-to-date answers.</p>
                 </div>
 
                 {isAuthenticated ? (
                   <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mb-8">
-                    <div className="bg-gray-50 p-4 rounded-lg border hover:border-[#01953f] transition-colors cursor-pointer"
+                    <div className="bg-theme-secondary p-4 rounded-lg border border-theme-primary hover:border-[#01953f] transition-colors cursor-pointer"
                          onClick={() => setCurrentMessage("What's the latest news in AI?")}>
                       <div className="text-[#01953f] mb-2">🤖</div>
-                      <h3 className="font-medium text-gray-800 mb-1">Latest AI News</h3>
-                      <p className="text-gray-600 text-sm">Get the most recent developments in artificial intelligence</p>
+                      <h3 className="font-medium text-theme-primary mb-1">Latest AI News</h3>
+                      <p className="text-theme-secondary text-sm">Get the most recent developments in artificial intelligence</p>
                     </div>
 
-                    <div className="bg-gray-50 p-4 rounded-lg border hover:border-[#01953f] transition-colors cursor-pointer"
+                    <div className="bg-theme-secondary p-4 rounded-lg border border-theme-primary hover:border-[#01953f] transition-colors cursor-pointer"
                          onClick={() => setCurrentMessage("Explain quantum computing")}>
                       <div className="text-[#01953f] mb-2">⚛️</div>
-                      <h3 className="font-medium text-gray-800 mb-1">Explain Complex Topics</h3>
-                      <p className="text-gray-600 text-sm">Break down complex subjects into understandable explanations</p>
+                      <h3 className="font-medium text-theme-primary mb-1">Explain Complex Topics</h3>
+                      <p className="text-theme-secondary text-sm">Break down complex subjects into understandable explanations</p>
                     </div>
 
-                    <div className="bg-gray-50 p-4 rounded-lg border hover:border-[#01953f] transition-colors cursor-pointer"
+                    <div className="bg-theme-secondary p-4 rounded-lg border border-theme-primary hover:border-[#01953f] transition-colors cursor-pointer"
                          onClick={() => setCurrentMessage("Best restaurants in New York")}>
                       <div className="text-[#01953f] mb-2">🍽️</div>
-                      <h3 className="font-medium text-gray-800 mb-1">Local Recommendations</h3>
-                      <p className="text-gray-600 text-sm">Find the best places to eat, visit, or explore</p>
+                      <h3 className="font-medium text-theme-primary mb-1">Local Recommendations</h3>
+                      <p className="text-theme-secondary text-sm">Find the best places to eat, visit, or explore</p>
                     </div>
 
-                    <div className="bg-gray-50 p-4 rounded-lg border hover:border-[#01953f] transition-colors cursor-pointer"
+                    <div className="bg-theme-secondary p-4 rounded-lg border border-theme-primary hover:border-[#01953f] transition-colors cursor-pointer"
                          onClick={() => setCurrentMessage("How to learn Python programming?")}>
                       <div className="text-[#01953f] mb-2">💻</div>
-                      <h3 className="font-medium text-gray-800 mb-1">Learning Resources</h3>
-                      <p className="text-gray-600 text-sm">Get guidance on learning new skills and topics</p>
+                      <h3 className="font-medium text-theme-primary mb-1">Learning Resources</h3>
+                      <p className="text-theme-secondary text-sm">Get guidance on learning new skills and topics</p>
                     </div>
                   </div>
                 ) : (
                   <div className="text-center">
-                    <p className="text-gray-500 mb-4">Please sign in to start chatting</p>
+                    <p className="text-theme-secondary mb-4">Please sign in to start chatting</p>
                     <button
                       onClick={() => setIsAuthModalOpen(true)}
                       className="bg-[#01953f] hover:bg-[#01fb6a] hover:text-black text-white py-3 px-6 rounded-lg transition-all duration-200 font-medium"
@@ -539,7 +540,7 @@ const Home = () => {
         </div>
 
         {/* Input Bar */}
-        <div className="bg-white prompt-box border-t border-gray-200">
+        <div className="bg-theme-primary prompt-box border-t border-theme-primary">
           <InputBar
             currentMessage={currentMessage}
             setCurrentMessage={setCurrentMessage}
@@ -556,6 +557,9 @@ const Home = () => {
         onClose={() => setIsAuthModalOpen(false)}
         onAuthSuccess={handleAuthSuccess}
       />
+
+      {/* Theme Toggle */}
+      <ThemeToggle />
     </div>
   );
 };

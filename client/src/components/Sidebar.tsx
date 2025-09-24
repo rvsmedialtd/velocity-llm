@@ -128,7 +128,7 @@ const Sidebar: React.FC<SidebarProps> = ({
 
             {/* Profile Dropdown */}
             {isProfileMenuOpen && (
-              <div className="absolute bottom-full left-2 right-2 mb-2 bg-gray-800 rounded-lg shadow-lg border border-gray-600 py-2 z-50">
+              <div className="absolute bottom-full left-20 mb-2 w-48 bg-gray-800 rounded-lg shadow-lg border border-gray-600 py-2 z-50">
                 <div className="px-3 py-2 border-b border-gray-600">
                   <div className="text-xs font-medium text-white truncate">
                     {userData?.email || 'User'}

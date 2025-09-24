@@ -127,7 +127,7 @@ const ChatHistoryFlyout: React.FC<ChatHistoryFlyoutProps> = ({
       <div className="mb-6">
         <div className="flex items-center space-x-2 mb-3 px-1">
           <span className="text-lg">{icon}</span>
-          <h3 className="text-sm font-semibold text-gray-600 uppercase tracking-wider">
+          <h3 className="text-sm font-semibold text-theme-secondary uppercase tracking-wider">
             {title} ({chats.length})
           </h3>
         </div>
@@ -162,24 +162,24 @@ const ChatHistoryFlyout: React.FC<ChatHistoryFlyoutProps> = ({
       {/* Flyout Panel */}
       <div
         ref={flyoutRef}
-        className={`fixed top-0 left-0 h-full bg-white2 shadow-2xl transition-transform duration-300 ease-out z-60 ${
+        className={`fixed top-0 left-0 h-full bg-theme-primary shadow-2xl transition-transform duration-300 ease-out z-60 flex flex-col ${
           isOpen ? 'translate-x-0' : '-translate-x-full'
         } w-full max-w-md sm:max-w-lg md:max-w-xl lg:max-w-2xl`}
       >
         {/* Header */}
-        <div className="bg-white2 border-b border-gray-200 px-6 py-4 sticky top-0 z-10">
+        <div className="bg-theme-primary border-b border-theme-primary px-6 py-4 flex-shrink-0">
           <div className="flex items-center justify-between mb-4">
             <div className="flex items-center space-x-3">
-              <h2 className="text-xl font-bold text-gray-900">Recent Chats</h2>
-              <span className="bg-gray-100 text-gray-600 text-xs px-2 py-1 rounded-full">
+              <h2 className="text-xl font-bold text-theme-primary">Recent Chats</h2>
+              <span className="bg-theme-tertiary text-theme-secondary text-xs px-2 py-1 rounded-full">
                 {filteredChats.length}
               </span>
             </div>
             <button
               onClick={onClose}
-              className="p-2 hover:bg-gray-100 rounded-lg transition-colors"
+              className="p-2 hover:bg-theme-secondary rounded-lg transition-colors"
             >
-              <svg className="w-5 h-5 text-gray-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <svg className="w-5 h-5 text-theme-tertiary" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M6 18L18 6M6 6l12 12"></path>
               </svg>
             </button>
@@ -188,7 +188,7 @@ const ChatHistoryFlyout: React.FC<ChatHistoryFlyoutProps> = ({
           {/* Search Bar */}
           <div className="relative">
             <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
-              <svg className="h-4 w-4 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <svg className="h-4 w-4 text-theme-tertiary" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z"></path>
               </svg>
             </div>
@@ -197,14 +197,14 @@ const ChatHistoryFlyout: React.FC<ChatHistoryFlyoutProps> = ({
               placeholder="Search conversations..."
               value={searchQuery}
               onChange={(e) => setSearchQuery(e.target.value)}
-              className="w-full pl-10 pr-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-[#01953f] focus:border-[#01953f] transition-colors"
+              className="w-full pl-10 pr-4 py-2 border border-theme-primary rounded-lg focus:ring-2 focus:ring-[#01953f] focus:border-[#01953f] transition-colors bg-theme-secondary text-theme-primary placeholder:text-theme-tertiary"
             />
             {searchQuery && (
               <button
                 onClick={() => setSearchQuery('')}
                 className="absolute inset-y-0 right-0 pr-3 flex items-center"
               >
-                <svg className="h-4 w-4 text-gray-400 hover:text-gray-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <svg className="h-4 w-4 text-theme-tertiary hover:text-theme-secondary" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                   <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M6 18L18 6M6 6l12 12"></path>
                 </svg>
               </button>
@@ -218,19 +218,19 @@ const ChatHistoryFlyout: React.FC<ChatHistoryFlyoutProps> = ({
             <div className="text-center py-12">
               {searchQuery ? (
                 <div>
-                  <svg className="mx-auto h-12 w-12 text-gray-400 mb-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <svg className="mx-auto h-12 w-12 text-theme-tertiary mb-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                     <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z"></path>
                   </svg>
-                  <h3 className="text-lg font-medium text-gray-900 mb-1">No results found</h3>
-                  <p className="text-gray-500">Try searching with different keywords</p>
+                  <h3 className="text-lg font-medium text-theme-primary mb-1">No results found</h3>
+                  <p className="text-theme-tertiary">Try searching with different keywords</p>
                 </div>
               ) : (
                 <div>
-                  <svg className="mx-auto h-12 w-12 text-gray-400 mb-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <svg className="mx-auto h-12 w-12 text-theme-tertiary mb-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                     <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M8 12h.01M12 12h.01M16 12h.01M21 12c0 4.418-4.03 8-9 8a9.863 9.863 0 01-4.255-.949L3 20l1.395-3.72C3.512 15.042 3 13.574 3 12c0-4.418 4.03-8 9-8s9 3.582 9 8z"></path>
                   </svg>
-                  <h3 className="text-lg font-medium text-gray-900 mb-1">No conversations yet</h3>
-                  <p className="text-gray-500">Start a new chat to see your conversation history</p>
+                  <h3 className="text-lg font-medium text-theme-primary mb-1">No conversations yet</h3>
+                  <p className="text-theme-tertiary">Start a new chat to see your conversation history</p>
                 </div>
               )}
             </div>
@@ -263,8 +263,8 @@ const ChatHistoryFlyout: React.FC<ChatHistoryFlyoutProps> = ({
         </div>
 
         {/* Footer */}
-        <div className="border-t border-gray-200 p-4">
-          <div className="flex items-center justify-between text-sm text-gray-500">
+        <div className="border-t border-theme-primary p-4 flex-shrink-0">
+          <div className="flex items-center justify-between text-sm text-theme-tertiary">
             <span>{filteredChats.length} conversation{filteredChats.length !== 1 ? 's' : ''}</span>
             <button
               onClick={onClose}

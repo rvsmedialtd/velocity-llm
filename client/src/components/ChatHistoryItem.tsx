@@ -79,10 +79,10 @@ const ChatHistoryItem: React.FC<ChatHistoryItemProps> = ({
   };
 
   return (
-    <div className={`group relative bg-white rounded-lg border transition-all duration-200 hover:shadow-md ${
+    <div className={`group relative bg-theme-primary rounded-lg border transition-all duration-200 hover:shadow-md ${
       isActive
-        ? 'border-[#01953f] shadow-sm bg-green-50'
-        : 'border-gray-200 hover:border-gray-300'
+        ? 'border-[#01953f] shadow-sm bg-[#01953f]/10'
+        : 'border-theme-primary hover:border-theme-secondary'
     }`}>
       <div
         className="p-4 cursor-pointer"
@@ -97,33 +97,33 @@ const ChatHistoryItem: React.FC<ChatHistoryItemProps> = ({
                 onChange={(e) => setNewTitle(e.target.value)}
                 onBlur={handleRename}
                 onKeyDown={handleKeyPress}
-                className="w-full text-sm font-medium text-gray-900 bg-transparent border-b border-[#01953f] focus:outline-none"
+                className="w-full text-sm font-medium text-theme-primary bg-transparent border-b border-[#01953f] focus:outline-none"
                 autoFocus
                 onClick={(e) => e.stopPropagation()}
               />
             ) : (
               <h3 className={`text-sm font-medium mb-1 truncate ${
-                isActive ? 'text-[#01953f]' : 'text-gray-900'
+                isActive ? 'text-[#01953f]' : 'text-theme-primary'
               }`}>
                 {chat.title || 'Untitled Chat'}
               </h3>
             )}
 
-            <p className="text-xs text-gray-500 mb-2 line-clamp-2">
+            <p className="text-xs text-theme-tertiary mb-2 line-clamp-2">
               {getPreviewText()}
             </p>
 
             <div className="flex items-center space-x-2">
-              <span className="text-xs text-gray-400">
+              <span className="text-xs text-theme-tertiary">
                 {formatDate(chat.updated_at)}
               </span>
 
               {/* Chat type indicator */}
               <div className="flex items-center space-x-1">
-                <svg className="w-3 h-3 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <svg className="w-3 h-3 text-theme-tertiary" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                   <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M8 12h.01M12 12h.01M16 12h.01M21 12c0 4.418-4.03 8-9 8a9.863 9.863 0 01-4.255-.949L3 20l1.395-3.72C3.512 15.042 3 13.574 3 12c0-4.418 4.03-8 9-8s9 3.582 9 8z"></path>
                 </svg>
-                <span className="text-xs text-gray-400">
+                <span className="text-xs text-theme-tertiary">
                   {chat.messages?.length || 0} messages
                 </span>
               </div>
@@ -137,7 +137,7 @@ const ChatHistoryItem: React.FC<ChatHistoryItemProps> = ({
                 e.stopPropagation();
                 setIsMenuOpen(!isMenuOpen);
               }}
-              className={`opacity-0 group-hover:opacity-100 p-1 rounded text-gray-400 hover:text-gray-600 transition-all ${
+              className={`opacity-0 group-hover:opacity-100 p-1 rounded text-theme-tertiary hover:text-theme-secondary transition-all ${
                 isMenuOpen ? 'opacity-100' : ''
               }`}
             >
@@ -148,14 +148,14 @@ const ChatHistoryItem: React.FC<ChatHistoryItemProps> = ({
 
             {/* Dropdown menu */}
             {isMenuOpen && (
-              <div className="absolute right-0 top-full mt-1 w-36 bg-white rounded-lg shadow-lg border border-gray-200 py-1 z-50">
+              <div className="absolute right-0 top-full mt-1 w-36 bg-theme-primary rounded-lg shadow-lg border border-theme-primary py-1 z-50">
                 <button
                   onClick={(e) => {
                     e.stopPropagation();
                     setIsRenaming(true);
                     setIsMenuOpen(false);
                   }}
-                  className="block w-full text-left px-3 py-2 text-sm text-gray-700 hover:bg-gray-100 transition-colors"
+                  className="block w-full text-left px-3 py-2 text-sm text-theme-primary hover:bg-theme-secondary transition-colors"
                 >
                   <div className="flex items-center space-x-2">
                     <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
