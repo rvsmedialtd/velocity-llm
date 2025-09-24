@@ -48,7 +48,7 @@ const Home = () => {
 
   const fetchChatHistory = async (token: string) => {
     try {
-      const response = await fetch('http://127.0.0.1:8000/user/chat/history', {
+      const response = await fetch('http://127.0.0.1:8001/user/chat/history', {
         headers: {
           'Authorization': `Bearer ${token}`
         }
@@ -85,7 +85,7 @@ const Home = () => {
     if (!token) return;
 
     try {
-      const response = await fetch(`http://127.0.0.1:8000/user/chat/${conversationId}`, {
+      const response = await fetch(`http://127.0.0.1:8001/user/chat/${conversationId}`, {
         headers: {
           'Authorization': `Bearer ${token}`
         }
@@ -107,7 +107,7 @@ const Home = () => {
     if (!token || !conversationId) return;
 
     try {
-      const response = await fetch('http://127.0.0.1:8000/user/chat/save', {
+      const response = await fetch('http://127.0.0.1:8001/user/chat/save', {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
@@ -133,7 +133,7 @@ const Home = () => {
     if (!token) return;
 
     try {
-      const response = await fetch(`http://127.0.0.1:8000/user/chat/${conversationId}`, {
+      const response = await fetch(`http://127.0.0.1:8001/user/chat/${conversationId}`, {
         method: 'DELETE',
         headers: {
           'Authorization': `Bearer ${token}`
@@ -158,7 +158,7 @@ const Home = () => {
     if (!token) return;
 
     try {
-      const response = await fetch(`http://127.0.0.1:8000/user/chat/${conversationId}/rename`, {
+      const response = await fetch(`http://127.0.0.1:8001/user/chat/${conversationId}/rename`, {
         method: 'PUT',
         headers: {
           'Content-Type': 'application/json',
@@ -231,7 +231,7 @@ const Home = () => {
         ]);
 
         // Create URL with checkpoint ID if it exists
-        let url = `http://127.0.0.1:8000/chat_stream/${encodeURIComponent(userInput)}`;
+        let url = `http://127.0.0.1:8001/chat_stream/${encodeURIComponent(userInput)}`;
         if (checkpointId) {
           url += `?checkpoint_id=${encodeURIComponent(checkpointId)}`;
         }

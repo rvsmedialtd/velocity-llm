@@ -50,10 +50,10 @@ const AuthModal: React.FC<AuthModalProps> = ({ isOpen, onClose, onAuthSuccess })
     try {
       // Choose endpoint based on login type
       const endpoint = isSuperAdmin
-        ? 'http://127.0.0.1:8000/super-admin/auth/login'
+        ? 'http://127.0.0.1:8001/super-admin/auth/login'
         : isAdminLogin
-          ? 'http://127.0.0.1:8000/admin/auth/login'
-          : 'http://127.0.0.1:8000/auth/login';
+          ? 'http://127.0.0.1:8001/admin/auth/login'
+          : 'http://127.0.0.1:8001/auth/login';
 
       const response = await fetch(endpoint, {
         method: 'POST',
@@ -106,8 +106,8 @@ const AuthModal: React.FC<AuthModalProps> = ({ isOpen, onClose, onAuthSuccess })
     try {
       // Choose endpoint based on admin registration
       const endpoint = isAdminRegister
-        ? 'http://127.0.0.1:8000/admin/register'
-        : 'http://127.0.0.1:8000/auth/register';
+        ? 'http://127.0.0.1:8001/admin/register'
+        : 'http://127.0.0.1:8001/auth/register';
 
       const requestBody = isAdminRegister
         ? {
