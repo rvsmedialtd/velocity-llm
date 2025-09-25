@@ -202,7 +202,6 @@ async def magento_product_search(query: str) -> str:
     except Exception as e:
         return f"❌ Error searching products: {str(e)}"
 
-
 tools = [search_tool, magento_product_search]
 
 # OpenAI LLM setup
@@ -263,7 +262,6 @@ async def tool_node(state):
                     name=tool_name
                 )
                 tool_messages.append(tool_message)
-
             else:
                 # Handle unknown tools
                 tool_message = ToolMessage(

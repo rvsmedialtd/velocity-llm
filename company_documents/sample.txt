@@ -1,0 +1,1 @@
+This is a sample company document for testing MCP file system access.

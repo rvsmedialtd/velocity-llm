@@ -199,7 +199,21 @@ class FileSystemTool(BaseMCPTool):
         words = query.split()
         for word in words:
             if "/" in word or "\\" in word or word.endswith(('.txt', '.md', '.py', '.js', '.json')):
+                # Handle company_documents/filename.txt pattern
+                if word.startswith('company_documents/') and self.allowed_paths:
+                    # Remove the company_documents/ prefix and join with allowed path
+                    filename = word.replace('company_documents/', '')
+                    return os.path.join(self.allowed_paths[0], filename)
+                # If path is relative, make it absolute to allowed directory
+                elif not word.startswith('/') and self.allowed_paths:
+                    return os.path.join(self.allowed_paths[0], word)
                 return word
+
+        # Also check if query mentions a directory name
+        if 'company_documents' in query.lower() and 'sample.txt' not in query:
+            if self.allowed_paths:
+                return self.allowed_paths[0]
+
         return None
 
     def _is_path_allowed(self, file_path: str) -> bool:
@@ -208,9 +222,15 @@ class FileSystemTool(BaseMCPTool):
             # If no restrictions set, allow uploads directory only
             return file_path.startswith("./uploads/")
 
-        abs_path = os.path.abspath(file_path)
+        # Convert to absolute path for comparison
+        if not os.path.isabs(file_path):
+            abs_path = os.path.abspath(file_path)
+        else:
+            abs_path = file_path
+
         for allowed in self.allowed_paths:
-            if abs_path.startswith(os.path.abspath(allowed)):
+            allowed_abs = os.path.abspath(allowed)
+            if abs_path.startswith(allowed_abs):
                 return True
         return False
 
